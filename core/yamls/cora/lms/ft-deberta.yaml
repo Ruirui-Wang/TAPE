@@ -48,3 +48,10 @@ train:
   epochs: 10000
   device: 0
   auto_resume: False
+
+model:
+  device: 0
+  type: ft-MLP-deberta
+  hidden_channels: 128 #
+  num_layers: 3 #
+  dropout: 0.1

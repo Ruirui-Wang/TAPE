@@ -83,7 +83,7 @@ class LMTrainer():
         # Define pretrained tokenizer and model
         bert_model = AutoModel.from_pretrained(self.model_name)
         self.model = BertClassifier(bert_model,
-                                    n_labels=self.n_labels,
+                                    cfg,
                                     feat_shrink=self.feat_shrink)
 
         # prev_ckpt = f'prt_lm/{self.dataset_name}/{self.model_name}.ckpt'

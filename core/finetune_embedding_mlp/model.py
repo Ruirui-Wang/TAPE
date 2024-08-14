@@ -1,13 +1,18 @@
+import os
+import sys
+
 import torch
 import torch.nn as nn
 import numpy as np
 from transformers import PreTrainedModel
 from transformers.modeling_outputs import TokenClassifierOutput
 from utils import init_random_state
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from graphgps.score.custom_score import LinkPredictor
 
 
 class BertClassifier(PreTrainedModel):
-    def __init__(self, model, n_labels, dropout=0.0, seed=0, cla_bias=True, feat_shrink=''):
+    def __init__(self, model, cfg, dropout=0.0, seed=0, cla_bias=True, feat_shrink=''):
         super().__init__(model.config)
         self.bert_encoder = model
         self.dropout = nn.Dropout(dropout)
@@ -20,7 +25,8 @@ class BertClassifier(PreTrainedModel):
             self.feat_shrink_layer = nn.Linear(
                 model.config.hidden_size, int(feat_shrink), bias=cla_bias)
             hidden_dim = int(feat_shrink)
-        self.classifier = nn.Linear(hidden_dim, n_labels, bias=cla_bias)
+        self.classifier = LinkPredictor(hidden_dim, cfg.model.hidden_channels, 1, cfg.model.num_layers,
+                                  cfg.model.dropout, 'dot')
         init_random_state(seed)
 
     def forward(self,
