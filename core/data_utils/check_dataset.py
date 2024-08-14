@@ -89,9 +89,9 @@ if __name__ == "__main__":
         print(f"\n\n\nChecking dataset {dataset} :")
         args.name = dataset
         splits, text, data = load_data_lp[dataset](args)
-        '''check_data_leakage(splits)
+        check_data_leakage(splits)
         check_self_loops(data)
-        check_edges_completeness(splits, data)'''
+        check_edges_completeness(splits, data)
         print("Is data.edge_index symmetric?",check_is_symmetric(data.edge_index))
         print("Is splits['test']['pos_edge_label_index'] symmetric?", check_is_symmetric(splits['test']['pos_edge_label_index']))
         print("Is splits['valid']['pos_edge_label_index'] symmetric?", check_is_symmetric(splits['valid']['pos_edge_label_index']))

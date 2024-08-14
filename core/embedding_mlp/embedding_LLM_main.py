@@ -5,6 +5,7 @@ import transformers
 from sentence_transformers import SentenceTransformer
 from torch import Tensor, nn
 from transformers import BertTokenizer, BertModel, AutoTokenizer, AutoModel
+import torch_geometric.transforms as T
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse

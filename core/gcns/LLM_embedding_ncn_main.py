@@ -116,7 +116,6 @@ if __name__ == "__main__":
         cfg = config_device(cfg)
         start = time.time()
         splits, __, data = load_data_lp[cfg.data.name](cfg.data)
-
         saved_features_path = './' + args.embedder + cfg.data.name + 'saved_node_features.pt'
         if os.path.exists(saved_features_path):
             node_features = torch.load(saved_features_path, map_location=torch.device('cpu'))
