@@ -57,7 +57,7 @@ class LinkPredictionDataset(torch.utils.data.Dataset):
 
         self.encodings = encodings
         self.edge_index = edge_index
-        self.labels = labels
+        self.labels = labels.long()
 
     def __getitem__(self, idx):
         node1_idx, node2_idx = self.edge_index[:, idx]

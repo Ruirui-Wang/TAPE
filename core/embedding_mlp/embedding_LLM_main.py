@@ -302,6 +302,7 @@ if __name__ == '__main__':
                         batch_features = outputs.pooler_output
                         node_features.append(batch_features)
                 node_features = torch.cat(node_features, dim=0)
+            node_features = torch.tensor(node_features)
             torch.save(node_features, saved_features_path)
         emb_time = time.time() - start_emb
 

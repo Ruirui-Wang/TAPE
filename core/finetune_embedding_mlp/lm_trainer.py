@@ -57,6 +57,7 @@ class LMTrainer():
         self.eval_patience = cfg.lm.train.eval_patience
         self.grad_acc_steps = cfg.lm.train.grad_acc_steps
         self.lr = cfg.lm.train.lr
+        self.device = config_device(cfg).device
 
         self.use_gpt_str = "2" if cfg.lm.train.use_gpt else ""
         self.output_dir = f'output/{self.dataset_name}{self.use_gpt_str}/{self.model_name}-seed{self.seed}'
@@ -66,13 +67,13 @@ class LMTrainer():
         splits, text, data = load_data_lp[cfg.data.name](cfg.data)
         splits = random_sampling(splits, args.downsampling)
 
-        self.data = data
+        self.data = data.to(self.device)
         self.num_nodes = data.num_nodes
         self.n_labels = 2
 
         tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         X = tokenizer(text, padding=True, truncation=True, max_length=512)
-        dataset = LinkPredictionDataset(X, data.edge_index, np.ones(data.edge_index.shape[1]))
+        dataset = LinkPredictionDataset(X, data.edge_index, torch.ones(data.edge_index.shape[1]))
         self.inf_dataset = dataset
 
         self.train_dataset = LinkPredictionDataset(X, torch.cat([splits['train'].pos_edge_label_index, splits['train'].neg_edge_label_index], dim=1), torch.cat([splits['train'].pos_edge_label, splits['train'].neg_edge_label], dim=0))
@@ -84,7 +85,7 @@ class LMTrainer():
         bert_model = AutoModel.from_pretrained(self.model_name)
         self.model = BertClassifier(bert_model,
                                     cfg,
-                                    feat_shrink=self.feat_shrink)
+                                    feat_shrink=self.feat_shrink).to(self.device)
 
         # prev_ckpt = f'prt_lm/{self.dataset_name}/{self.model_name}.ckpt'
         # if self.use_gpt_str and os.path.exists(prev_ckpt):
@@ -222,12 +223,12 @@ if __name__ == '__main__':
     cfg.merge_from_list(args.opts)
 
     cfg.data.device = args.device
+    cfg.model.device = args.device
     cfg.device = args.device
     torch.set_num_threads(cfg.num_threads)
     best_acc = 0
     best_params = {}
     loggers = create_logger(args.repeat)
-    cfg.device = args.device
     start_ft = time.time()
     for run_id in range(args.repeat):
         seed = run_id + args.start_seed

@@ -7,6 +7,7 @@ import numpy as np
 from transformers import PreTrainedModel
 from transformers.modeling_outputs import TokenClassifierOutput
 from utils import init_random_state
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from graphgps.score.custom_score import LinkPredictor
 
@@ -18,15 +19,12 @@ class BertClassifier(PreTrainedModel):
         self.dropout = nn.Dropout(dropout)
         self.feat_shrink = feat_shrink
         hidden_dim = model.config.hidden_size
-        self.loss_func = nn.CrossEntropyLoss(
-            label_smoothing=0.3, reduction='mean')
-
         if feat_shrink:
             self.feat_shrink_layer = nn.Linear(
                 model.config.hidden_size, int(feat_shrink), bias=cla_bias)
             hidden_dim = int(feat_shrink)
         self.classifier = LinkPredictor(hidden_dim, cfg.model.hidden_channels, 1, cfg.model.num_layers,
-                                  cfg.model.dropout, 'dot')
+                                        cfg.model.dropout, 'dot')
         init_random_state(seed)
 
     def forward(self,
@@ -35,18 +33,19 @@ class BertClassifier(PreTrainedModel):
                 labels=None,
                 return_dict=None,
                 preds=None):
-        input_1 = input_ids[:,0,:]
-        input_2 = input_ids[:,1,:]
-        attention_mask_1 = attention_mask[:,0,:]
-        attention_mask_2 = attention_mask[:,1,:]
+        input_1 = input_ids[:, 0, :]
+        input_2 = input_ids[:, 1, :]
+        attention_mask_1 = attention_mask[:, 0, :]
+        attention_mask_2 = attention_mask[:, 1, :]
+
         outputs_1 = self.bert_encoder(input_ids=input_1,
-                                    attention_mask=attention_mask_1,
-                                    return_dict=return_dict,
-                                    output_hidden_states=True)
+                                      attention_mask=attention_mask_1,
+                                      return_dict=return_dict,
+                                      output_hidden_states=True)
         outputs_2 = self.bert_encoder(input_ids=input_2,
-                                    attention_mask=attention_mask_2,
-                                    return_dict=return_dict,
-                                    output_hidden_states=True)
+                                      attention_mask=attention_mask_2,
+                                      return_dict=return_dict,
+                                      output_hidden_states=True)
         # outputs[0]=last hidden state
         emb_1 = self.dropout(outputs_1['hidden_states'][-1])
         emb_2 = self.dropout(outputs_2['hidden_states'][-1])
@@ -61,7 +60,19 @@ class BertClassifier(PreTrainedModel):
 
         if labels.shape[-1] == 1:
             labels = labels.squeeze()
-        loss = self.loss_func(logits, labels)
+
+        pos_mask = (labels == 1)
+        neg_mask = (labels == 0)
+
+        pos_out = logits[pos_mask]
+        neg_out = logits[neg_mask]
+
+        pos_loss = -torch.log(pos_out + 1e-15).mean() if pos_out.numel() > 0 else torch.tensor(0.0)
+
+        neg_loss = -torch.log(1 - neg_out + 1e-15).mean() if neg_out.numel() > 0 else torch.tensor(0.0)
+
+        loss = pos_loss + neg_loss
+        print(loss)
 
         return TokenClassifierOutput(loss=loss, logits=logits)
 
@@ -72,8 +83,6 @@ class BertClaInfModel(PreTrainedModel):
         self.bert_classifier = model
         self.emb, self.pred = emb, pred
         self.feat_shrink = feat_shrink
-        self.loss_func = nn.CrossEntropyLoss(
-            label_smoothing=0.3, reduction='mean')
 
     @torch.no_grad()
     def forward(self,
