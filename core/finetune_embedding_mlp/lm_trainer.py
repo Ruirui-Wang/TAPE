@@ -5,7 +5,6 @@ import numpy as np
 from torch_sparse import SparseTensor
 from torch_geometric.graphgym import params_count
 
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
 import time
@@ -25,7 +24,6 @@ from data_utils.load import load_data_lp, load_graph_lp
 from graphgps.train.ncn_train import Trainer_NCN
 from graphgps.utility.utils import save_run_results_to_csv
 
-
 from transformers import AutoTokenizer, AutoModel, TrainingArguments, Trainer, IntervalStrategy
 from model import BertClassifier, BertClaInfModel
 from finetune_dataset import LinkPredictionDataset
@@ -37,7 +35,9 @@ from torch_geometric.loader import DataLoader
 from heuristic.eval import get_metric_score
 from graphgps.utility.utils import config_device, Logger
 from torch.utils.tensorboard import SummaryWriter
+
 writer = SummaryWriter()
+
 
 def compute_metrics(p):
     from sklearn.metrics import accuracy_score
@@ -84,10 +84,15 @@ class LMTrainer():
         dataset = LinkPredictionDataset(X, data.edge_index, torch.ones(data.edge_index.shape[1]))
         self.inf_dataset = dataset
 
-        self.train_dataset = LinkPredictionDataset(X, torch.cat([splits['train'].pos_edge_label_index, splits['train'].neg_edge_label_index], dim=1), torch.cat([splits['train'].pos_edge_label, splits['train'].neg_edge_label], dim=0))
-        self.val_dataset = LinkPredictionDataset(X, torch.cat([splits['valid'].pos_edge_label_index, splits['valid'].neg_edge_label_index], dim=1), torch.cat([splits['valid'].pos_edge_label, splits['valid'].neg_edge_label], dim=0))
-        self.test_dataset = LinkPredictionDataset(X, torch.cat([splits['test'].pos_edge_label_index, splits['test'].neg_edge_label_index], dim=1), torch.cat([splits['test'].pos_edge_label, splits['test'].neg_edge_label], dim=0))
-
+        self.train_dataset = LinkPredictionDataset(X, torch.cat(
+            [splits['train'].pos_edge_label_index, splits['train'].neg_edge_label_index], dim=1), torch.cat(
+            [splits['train'].pos_edge_label, splits['train'].neg_edge_label], dim=0))
+        self.val_dataset = LinkPredictionDataset(X, torch.cat(
+            [splits['valid'].pos_edge_label_index, splits['valid'].neg_edge_label_index], dim=1), torch.cat(
+            [splits['valid'].pos_edge_label, splits['valid'].neg_edge_label], dim=0))
+        self.test_dataset = LinkPredictionDataset(X, torch.cat(
+            [splits['test'].pos_edge_label_index, splits['test'].neg_edge_label_index], dim=1), torch.cat(
+            [splits['test'].pos_edge_label, splits['test'].neg_edge_label], dim=0))
 
         # Define pretrained tokenizer and model
         bert_model = AutoModel.from_pretrained(self.model_name)
@@ -134,7 +139,7 @@ class LMTrainer():
             load_best_model_at_end=True,
             gradient_accumulation_steps=self.grad_acc_steps,
             per_device_train_batch_size=self.batch_size,
-            per_device_eval_batch_size=self.batch_size*8,
+            per_device_eval_batch_size=self.batch_size * 8,
             warmup_steps=warmup_steps,
             num_train_epochs=self.epochs,
             dataloader_num_workers=1,
@@ -187,10 +192,12 @@ class LMTrainer():
 
         pos_pred = predictor_dict.predictions[pos_mask]
         neg_pred = predictor_dict.predictions[neg_mask]
-
+        pos_pred = torch.tensor(pos_pred, dtype=torch.float32)
+        neg_pred = torch.tensor(neg_pred, dtype=torch.float32)
 
         result_mrr = get_metric_score(self.evaluator_hit, self.evaluator_mrr, pos_pred, neg_pred)
         return result_mrr
+
 
 def parse_args() -> argparse.Namespace:
     r"""Parses the command line arguments."""
@@ -211,7 +218,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='See graphgym/config.py for remaining options.')
     return parser.parse_args()
-
 
 
 if __name__ == '__main__':
@@ -240,7 +246,7 @@ if __name__ == '__main__':
         cfg = config_device(cfg)
         cfg.seed = seed
         trainer = LMTrainer(cfg)
-        trainer.train()
+
         result_test = trainer.eval_and_save(trainer.test_dataset)
         result_valid = trainer.eval_and_save(trainer.val_dataset)
         result_train = trainer.eval_and_save(trainer.train_dataset)
@@ -256,6 +262,11 @@ if __name__ == '__main__':
             trainer.tensorboard_writer.add_scalar(f"Metrics/Test/{key}", result[2])
 
             train_hits, valid_hits, test_hits = result
+            trainer.print_logger.info(
+                f'Run: {run_id + 1:02d}, Key: {key}, '
+                f'Train: {100 * train_hits:.2f}, Valid: {100 * valid_hits:.2f}, Test: {100 * test_hits:.2f}%')
 
         trainer.print_logger.info('---')
+
+        trainer.train()
 
