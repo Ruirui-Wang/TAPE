@@ -36,7 +36,7 @@ evaluator_mrr = Evaluator(name='ogbl-citation2')
 
 # Example usage
 FILE_PATH = '/hkfs/work/workspace/scratch/cc7738-benchmark_tag/educational_demo/'
-ncnc_cora_path = 'Error_analysis_ncnc_llama-2/ncnc-cora_AUC_0.9669_MRR_0.5275.csv'
+ncnc_cora_path = FILE_PATH + 'err_ncnc_llama/ncnc-arxiv_2023_AUC_0.9701_MRR_0.2946.csv'
 
 # optimal threshold detection
 P1, P2, pos_index, neg_index = load_results(ncnc_cora_path)
@@ -46,17 +46,16 @@ plot_pos_neg_histogram(P1, P2, best_thres)
 plot_pos_neg_histogram(pos_pred, neg_pred, best_thres)
 
 cfg = init_cfg_test()
+cfg.data.name = 'arxiv_2023'
 splits, text, data = load_data_lp[cfg.data.name](cfg.data)
 # type 2 predict no when yes 
 
 k_list  = [0.1, 0.2, 0.3, 0.5, 1]
 mrr_pos2neg, mrr_neg2pos, result_auc_test, pos_edge_index_err, pos_rank_err, neg_edge_index_err, neg_rank_err = get_metric_invariant(P1, pos_index, P2, neg_index, k_list)
 
-cfg = init_cfg_test()
-splits, text, data = load_data_lp[cfg.data.name](cfg.data)
-
 # pos
 norm_feat_pos = eval_mix_heuristic(data, pos_edge_index_err)
+
 feature_names = ['CN', 'AA', 'RA', 'InverseRA', 'Ben_PPR', 'shortest_path', 'katz_apro', 'katz_close', 'SymPPR', 'feat_pro']
 index_names = ['0', '1', '2', '3', '4', '5', '6', '7', '8']
 plt.figure(figsize=(8, 8))
@@ -69,21 +68,6 @@ plt.ylabel('Features')
 plt.title('Feature Map Heatmap')
 plt.tight_layout()
 plt.savefig('pos_err_map.png')
-
-
-condition_value = 0.1616161
-bi_err_pos = norm_feat_pos >= condition_value
-
-plt.figure(figsize=(8, 8))
-plt.imshow(bi_err_pos, cmap='Greens', aspect='auto')
-plt.colorbar(label='>= 0.1616161')  # Label the colorbar to indicate the condition
-plt.xticks(ticks=np.arange(len(index_names)), labels=index_names, rotation=45, ha='right')
-plt.yticks(ticks=np.arange(len(feature_names)), labels=feature_names)
-plt.xlabel('Features')
-plt.ylabel('Features')
-plt.title('Feature Map Heatmap (Condition: >= 0.1616161)')
-plt.tight_layout()
-plt.savefig('pos_err_condition.png')
 
 
 norm_feat_neg = eval_mix_heuristic(data, neg_edge_index_err)
@@ -133,6 +117,7 @@ plt.ylabel('Features')
 plt.title('Feature Map Heatmap')
 plt.tight_layout()
 plt.savefig('pos_err_type1.png')
+
 
 
 norm_feat_pos = eval_mix_heuristic(data, type_2)

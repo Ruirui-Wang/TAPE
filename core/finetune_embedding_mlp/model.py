@@ -72,8 +72,6 @@ class BertClassifier(PreTrainedModel):
         neg_loss = -torch.log(1 - neg_out + 1e-15).mean() if neg_out.numel() > 0 else torch.tensor(0.0)
 
         loss = pos_loss + neg_loss
-        print(loss)
-
         return TokenClassifierOutput(loss=loss, logits=logits)
 
 
@@ -93,26 +91,44 @@ class BertClaInfModel(PreTrainedModel):
                 node_id=None):
 
         # Extract outputs from the model
-        bert_outputs = self.bert_classifier.bert_encoder(input_ids=input_ids,
-                                                         attention_mask=attention_mask,
-                                                         return_dict=return_dict,
-                                                         output_hidden_states=True)
-        # outputs[0]=last hidden state
-        emb = bert_outputs['hidden_states'][-1]
-        # Use CLS Emb as sentence emb.
-        cls_token_emb = emb.permute(1, 0, 2)[0]
-        if self.feat_shrink:
-            cls_token_emb = self.bert_classifier.feat_shrink_layer(
-                cls_token_emb)
-        logits = self.bert_classifier.classifier(cls_token_emb)
+        input_1 = input_ids[:, 0, :]
+        input_2 = input_ids[:, 1, :]
+        attention_mask_1 = attention_mask[:, 0, :]
+        attention_mask_2 = attention_mask[:, 1, :]
 
-        # Save prediction and embeddings to disk (memmap)
-        batch_nodes = node_id.cpu().numpy()
-        self.emb[batch_nodes] = cls_token_emb.cpu().numpy().astype(np.float16)
-        self.pred[batch_nodes] = logits.cpu().numpy().astype(np.float16)
+        outputs_1 = self.bert_classifier.bert_encoder(input_ids=input_1,
+                                      attention_mask=attention_mask_1,
+                                      return_dict=return_dict,
+                                      output_hidden_states=True)
+        outputs_2 = self.bert_classifier.bert_encoder(input_ids=input_2,
+                                      attention_mask=attention_mask_2,
+                                      return_dict=return_dict,
+                                      output_hidden_states=True)
+        # outputs[0]=last hidden state
+        emb_1 = outputs_1['hidden_states'][-1]
+        emb_2 = outputs_2['hidden_states'][-1]
+        # Use CLS Emb as sentence emb.
+        cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
+        cls_token_emb_2 = emb_2.permute(1, 0, 2)[0]
+        if self.feat_shrink:
+            cls_token_emb_1 = self.feat_shrink_layer(cls_token_emb_1)
+            cls_token_emb_2 = self.feat_shrink_layer(cls_token_emb_2)
+
+        logits = self.bert_classifier.classifier(cls_token_emb_1, cls_token_emb_2).squeeze(dim=1)
+        self.emb = torch.stack((cls_token_emb_1, cls_token_emb_2), dim=1).cpu().numpy().astype(np.float16)
+        self.pred = logits.cpu().numpy().astype(np.float16)
 
         if labels.shape[-1] == 1:
             labels = labels.squeeze()
-        loss = self.loss_func(logits, labels)
+        pos_mask = (labels == 1)
+        neg_mask = (labels == 0)
 
+        pos_out = logits[pos_mask]
+        neg_out = logits[neg_mask]
+
+        pos_loss = -torch.log(pos_out + 1e-15).mean() if pos_out.numel() > 0 else torch.tensor(0.0)
+
+        neg_loss = -torch.log(1 - neg_out + 1e-15).mean() if neg_out.numel() > 0 else torch.tensor(0.0)
+
+        loss = pos_loss + neg_loss
         return TokenClassifierOutput(loss=loss, logits=logits)

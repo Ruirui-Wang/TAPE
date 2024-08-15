@@ -30,6 +30,14 @@ from transformers import AutoTokenizer, AutoModel, TrainingArguments, Trainer, I
 from model import BertClassifier, BertClaInfModel
 from finetune_dataset import LinkPredictionDataset
 from utils import init_path, time_logger
+from ogb.linkproppred import Evaluator
+import numpy as np
+from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
+from heuristic.eval import get_metric_score
+from graphgps.utility.utils import config_device, Logger
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
 
 def compute_metrics(p):
     from sklearn.metrics import accuracy_score
@@ -94,6 +102,11 @@ class LMTrainer():
 
         self.model.config.dropout = self.dropout
         self.model.config.attention_dropout = self.att_dropout
+        self.evaluator_hit = Evaluator(name='ogbl-collab')
+        self.evaluator_mrr = Evaluator(name='ogbl-citation2')
+        self.tensorboard_writer = writer
+        self.loggers = create_logger(args.repeat)
+        self.print_logger = set_printing(cfg)
 
         trainable_params = sum(p.numel()
                                for p in self.model.parameters() if p.requires_grad)
@@ -102,7 +115,7 @@ class LMTrainer():
     @time_logger
     def train(self):
         # Define training parameters
-        eq_batch_size = self.batch_size * 4
+        eq_batch_size = self.batch_size * 1
         train_steps = self.num_nodes // eq_batch_size + 1
         eval_steps = self.eval_patience // eq_batch_size
         warmup_steps = int(self.warmup_epochs * train_steps)
@@ -125,7 +138,7 @@ class LMTrainer():
             warmup_steps=warmup_steps,
             num_train_epochs=self.epochs,
             dataloader_num_workers=1,
-            fp16=False,
+            fp16=True,
             dataloader_drop_last=True,
         )
         self.trainer = Trainer(
@@ -144,7 +157,7 @@ class LMTrainer():
 
     @time_logger
     @torch.no_grad()
-    def eval_and_save(self):
+    def eval_and_save(self, eval_data):
         emb = np.memmap(init_path(f"{self.ckpt_dir}.emb"),
                         dtype=np.float16,
                         mode='w+',
@@ -161,35 +174,23 @@ class LMTrainer():
             output_dir=self.output_dir,
             do_train=False,
             do_predict=True,
-            per_device_eval_batch_size=self.batch_size*8,
+            per_device_eval_batch_size=self.batch_size * 8,
             dataloader_drop_last=False,
             dataloader_num_workers=1,
-            fp16_full_eval=True,
+            fp16_full_eval=False,
         )
 
         trainer = Trainer(model=inf_model, args=inference_args)
-        trainer.predict(self.inf_dataset)
-        if "ogbn" in self.dataset_name:
-            from ogb.nodeproppred import Evaluator
-            _evaluator = Evaluator(name=self.dataset_name)
-        else:
-            from core.GNNs.gnn_utils import Evaluator
-            _evaluator = Evaluator(name=self.dataset_name)
+        predictor_dict = trainer.predict(eval_data)
+        pos_mask = (predictor_dict.label_ids == 1)
+        neg_mask = (predictor_dict.label_ids == 0)
 
-        def evaluator(preds, labels): return _evaluator.eval({
-            "y_true": torch.tensor(labels).view(-1, 1),
-            "y_pred": torch.tensor(preds).view(-1, 1),
-        })["acc"]
+        pos_pred = predictor_dict.predictions[pos_mask]
+        neg_pred = predictor_dict.predictions[neg_mask]
 
-        def eval(x): return evaluator(
-            np.argmax(pred[x], -1), self.data.y[x])
 
-        train_acc = eval(self.data.train_mask)
-        val_acc = eval(self.data.val_mask)
-        test_acc = eval(self.data.test_mask)
-        print(
-            f'[LM] TrainAcc: {train_acc:.4f}, ValAcc: {val_acc:.4f}, TestAcc: {test_acc:.4f}\n')
-        return {'TrainAcc': train_acc, 'ValAcc': val_acc, 'TestAcc': test_acc}
+        result_mrr = get_metric_score(self.evaluator_hit, self.evaluator_mrr, pos_pred, neg_pred)
+        return result_mrr
 
 def parse_args() -> argparse.Namespace:
     r"""Parses the command line arguments."""
@@ -197,8 +198,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--cfg', dest='cfg_file', type=str, required=False,
                         default='core/yamls/cora/lms/ft-deberta.yaml',
                         help='The configuration file path.')
-    parser.add_argument('--data', type=str, required=False, default='cora',
-                        help='data name')
     parser.add_argument('--repeat', type=int, default=5,
                         help='The number of repeated jobs.')
     parser.add_argument('--start_seed', type=int, default=0,
@@ -242,5 +241,21 @@ if __name__ == '__main__':
         cfg.seed = seed
         trainer = LMTrainer(cfg)
         trainer.train()
+        result_test = trainer.eval_and_save(trainer.test_dataset)
+        result_valid = trainer.eval_and_save(trainer.val_dataset)
+        result_train = trainer.eval_and_save(trainer.train_dataset)
+        result_all = {
+            key: (result_train[key], result_valid[key], result_test[key])
+            for key in result_test.keys()
+        }
+        for key, result in result_all.items():
+            trainer.loggers[key].add_result(run_id, result)
 
+            trainer.tensorboard_writer.add_scalar(f"Metrics/Train/{key}", result[0])
+            trainer.tensorboard_writer.add_scalar(f"Metrics/Valid/{key}", result[1])
+            trainer.tensorboard_writer.add_scalar(f"Metrics/Test/{key}", result[2])
+
+            train_hits, valid_hits, test_hits = result
+
+        trainer.print_logger.info('---')
 

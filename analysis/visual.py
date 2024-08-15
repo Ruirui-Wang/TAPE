@@ -507,3 +507,5 @@ if __name__ == '__main__':
         tgt = text[row[1]]
         print(f"{row[0]}**Source:** {src}  \n {row[1]}**Target:** {tgt}")
         display(Markdown(f"**Source:** {src}  \n**Target:** {tgt}"))
+
+
