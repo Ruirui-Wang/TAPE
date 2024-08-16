@@ -1,27 +1,19 @@
-import copy
 import os, sys
+from typing import Dict
 
-import numpy as np
-from torch_sparse import SparseTensor
-from torch_geometric.graphgym import params_count
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
 import time
 import torch
-from functools import partial
 from graphgps.utility.utils import random_sampling
 
 from torch_geometric import seed_everything
-from torch_geometric.graphgym.utils.device import auto_select_device
 from graphgps.utility.utils import set_cfg, get_git_repo_root_path, custom_set_run_dir, set_printing, run_loop_settings, \
     create_optimizer, config_device, \
     create_logger
 
-from graphgps.utility.ncn import PermIterator
-from graphgps.network.ncn import predictor_dict, convdict, GCN
 from data_utils.load import load_data_lp, load_graph_lp
-from graphgps.train.ncn_train import Trainer_NCN
 from graphgps.utility.utils import save_run_results_to_csv
 
 from transformers import AutoTokenizer, AutoModel, TrainingArguments, Trainer, IntervalStrategy
@@ -35,10 +27,11 @@ from torch_geometric.loader import DataLoader
 from heuristic.eval import get_metric_score
 from graphgps.utility.utils import config_device, Logger
 from torch.utils.tensorboard import SummaryWriter
+from graph_embed.tune_utils import mvari_str2csv, save_parmet_tune
 
 writer = SummaryWriter()
 
-
+# todo
 def compute_metrics(p):
     from sklearn.metrics import accuracy_score
     pred, labels = p
@@ -95,7 +88,9 @@ class LMTrainer():
             [splits['test'].pos_edge_label, splits['test'].neg_edge_label], dim=0))
 
         # Define pretrained tokenizer and model
-        bert_model = AutoModel.from_pretrained(self.model_name)
+        bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
+        for name, param in bert_model.named_parameters():
+            param.requires_grad = False
         self.model = BertClassifier(bert_model,
                                     cfg,
                                     feat_shrink=self.feat_shrink).to(self.device)
@@ -113,9 +108,10 @@ class LMTrainer():
         self.loggers = create_logger(args.repeat)
         self.print_logger = set_printing(cfg)
 
-        trainable_params = sum(p.numel()
+        self.trainable_params = sum(p.numel()
                                for p in self.model.parameters() if p.requires_grad)
-        print(f"\nNumber of parameters: {trainable_params}")
+        self.name_tag = cfg.model.type + cfg.data.name
+        self.FILE_PATH = f'{get_git_repo_root_path()}/'
 
     @time_logger
     def train(self):
@@ -143,8 +139,9 @@ class LMTrainer():
             warmup_steps=warmup_steps,
             num_train_epochs=self.epochs,
             dataloader_num_workers=1,
-            fp16=True,
+            fp16=False,
             dataloader_drop_last=True,
+            max_grad_norm=10.0,
         )
         self.trainer = Trainer(
             model=self.model,
@@ -152,6 +149,7 @@ class LMTrainer():
             train_dataset=self.train_dataset,
             eval_dataset=self.val_dataset,
             compute_metrics=compute_metrics,
+
             # callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
         )
 
@@ -196,7 +194,16 @@ class LMTrainer():
         neg_pred = torch.tensor(neg_pred, dtype=torch.float32)
 
         result_mrr = get_metric_score(self.evaluator_hit, self.evaluator_mrr, pos_pred, neg_pred)
+        result_mrr.update({'ACC': 0.00})
         return result_mrr
+
+    def save_result(self, results_dict: Dict[str, float]):  # sourcery skip: avoid-builtin-shadow
+
+        root = os.path.join(self.FILE_PATH, cfg.out_dir)
+        acc_file = os.path.join(root, f'{self.dataset_name}_lm_mrr.csv')
+        self.print_logger.info(f"save to {acc_file}")
+        os.makedirs(root, exist_ok=True)
+        mvari_str2csv(self.name_tag, results_dict, acc_file)
 
 
 def parse_args() -> argparse.Namespace:
@@ -246,8 +253,10 @@ if __name__ == '__main__':
         cfg = config_device(cfg)
         cfg.seed = seed
         trainer = LMTrainer(cfg)
-
+        trainer.train()
+        start_inf = time.time()
         result_test = trainer.eval_and_save(trainer.test_dataset)
+        eval_time = time.time() - start_inf
         result_valid = trainer.eval_and_save(trainer.val_dataset)
         result_train = trainer.eval_and_save(trainer.train_dataset)
         result_all = {
@@ -255,7 +264,7 @@ if __name__ == '__main__':
             for key in result_test.keys()
         }
         for key, result in result_all.items():
-            trainer.loggers[key].add_result(run_id, result)
+            loggers[key].add_result(run_id, result)
 
             trainer.tensorboard_writer.add_scalar(f"Metrics/Train/{key}", result[0])
             trainer.tensorboard_writer.add_scalar(f"Metrics/Valid/{key}", result[1])
@@ -267,6 +276,21 @@ if __name__ == '__main__':
                 f'Train: {100 * train_hits:.2f}, Valid: {100 * valid_hits:.2f}, Test: {100 * test_hits:.2f}%')
 
         trainer.print_logger.info('---')
+        save_run_results_to_csv(cfg, loggers, seed, run_id)
 
-        trainer.train()
+    print('All runs:')
+
+    result_dict = {}
+    for key in loggers:
+        print(key)
+        _, _, _, valid_test, _, _ = loggers[key].calc_all_stats()
+        result_dict[key] = valid_test
+
+    trainer.save_result(result_dict)
+
+    print_logger.info(f"Results for: {cfg.model.type}")
+    print_logger.info(f"Model Params: {trainer.trainable_params}")
+    print_logger.info(f'Num parameters: {cfg.model.params}')
+    print_logger.info(f"Inference time: {eval_time}")
+
 

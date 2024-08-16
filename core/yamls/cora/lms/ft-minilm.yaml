@@ -1,15 +1,15 @@
-dataset: pwc_small
+dataset: cora
 device: 0
 lm:
   model:
     feat_shrink: 
-    name: microsoft/deberta-base
+    name: sentence-transformers/all-MiniLM-L6-v2
   train:
     att_dropout: 0.1
     batch_size: 9
     cla_dropout: 0.4
     dropout: 0.3
-    epochs: 20
+    epochs: 4
     eval_patience: 1
     grad_acc_steps: 1
     lr: 0.0001
@@ -19,7 +19,7 @@ lm:
 runs: 5
 seed: 0
 data:
-  name: pwc_small
+  name: cora
   undirected: True
   include_negatives: True
   val_pct: 0.15
@@ -30,7 +30,7 @@ data:
 
 out_dir: results
 metric_best: acc
-cfg_dest: ft-deberta.yaml
+cfg_dest: ft-minilm.yaml
 print: file
 accelerator: auto
 num_threads: 11
@@ -51,7 +51,7 @@ train:
 
 model:
   device: 0
-  type: ft-MLP-deberta
+  type: ft-MLP-minilm
   hidden_channels: 128 #
   num_layers: 3 #
   dropout: 0.1
