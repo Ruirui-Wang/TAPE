@@ -3,14 +3,15 @@ device: 0
 lm:
   model:
     feat_shrink: 
-    name: sentence-transformers/all-MiniLM-L6-v2
+    name: meta-llama/Meta-Llama-3-8B
   train:
     att_dropout: 0.1
     batch_size: 9
+    cla_dropout: 0.4
     dropout: 0.3
-    epochs: 20
+    epochs: 4
     eval_patience: 1
-    grad_acc_steps: 4
+    grad_acc_steps: 1
     lr: 0.0001
     use_gpt: False
     warmup_epochs: 0.6
@@ -50,7 +51,7 @@ train:
 
 model:
   device: 0
-  type: ft-MLP-minilm
+  type: ft-MLP-deberta
   hidden_channels: 128 #
   num_layers: 3 #
   dropout: 0.1

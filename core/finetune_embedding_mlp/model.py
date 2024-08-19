@@ -115,6 +115,8 @@ class BertClaInfModel(PreTrainedModel):
             cls_token_emb_2 = self.feat_shrink_layer(cls_token_emb_2)
 
         logits = self.bert_classifier.classifier(cls_token_emb_1, cls_token_emb_2).squeeze(dim=1)
+        if torch.cuda.is_available():
+            print(f"Memory allocated: {torch.cuda.memory_allocated() / 1024 ** 2:.2f} MB")
         self.emb = torch.stack((cls_token_emb_1, cls_token_emb_2), dim=1).cpu().numpy().astype(np.float16)
         self.pred = logits.cpu().numpy().astype(np.float16)
 

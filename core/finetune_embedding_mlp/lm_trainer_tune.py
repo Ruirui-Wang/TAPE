@@ -1,6 +1,8 @@
 import os, sys
 from typing import Dict
 
+from tqdm import tqdm
+import itertools
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
@@ -220,7 +222,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--cfg', dest='cfg_file', type=str, required=False,
                         default='core/yamls/cora/lms/ft-deberta.yaml',
                         help='The configuration file path.')
-    parser.add_argument('--repeat', type=int, default=5,
+    parser.add_argument('--repeat', type=int, default=1,
                         help='The number of repeated jobs.')
     parser.add_argument('--start_seed', type=int, default=0,
                         help='The number of starting seed.')
@@ -260,45 +262,69 @@ if __name__ == '__main__':
         seed_everything(cfg.seed)
         cfg = config_device(cfg)
         cfg.seed = seed
-        trainer = LMTrainer(cfg)
-        trainer.train()
-        start_inf = time.time()
-        result_test = trainer.eval_and_save(trainer.test_dataset)
-        eval_time = time.time() - start_inf
-        result_valid = trainer.eval_and_save(trainer.val_dataset)
-        result_train = trainer.eval_and_save(trainer.train_dataset)
-        result_all = {
-            key: (result_train[key], result_valid[key], result_test[key])
-            for key in result_test.keys()
-        }
-        for key, result in result_all.items():
-            loggers[key].add_result(run_id, result)
 
-            trainer.tensorboard_writer.add_scalar(f"Metrics/Train/{key}", result[0])
-            trainer.tensorboard_writer.add_scalar(f"Metrics/Valid/{key}", result[1])
-            trainer.tensorboard_writer.add_scalar(f"Metrics/Test/{key}", result[2])
+        hyperparameter_search = {"lr": [0.001, 0.0005, 0.0001, 0.00005], 'grad_acc_steps': [1, 2],'warmup_epochs': [0.6, 0.8, 1.0],
+                                 'dropout': [0.0, 0.1, 0.2, 0.3], 'weight_decay': [0.0, 0.1, 0.2], 'att_dropout': [0.0, 0.1, 0.2]}
 
-            train_hits, valid_hits, test_hits = result
-            trainer.print_logger.info(
-                f'Run: {run_id + 1:02d}, Key: {key}, '
-                f'Train: {100 * train_hits:.2f}, Valid: {100 * valid_hits:.2f}, Test: {100 * test_hits:.2f}%')
+        print_logger.info(f"hypersearch space: {hyperparameter_search}")
+        for lr, grad_acc_steps, warmup_epochs, dropout, weight_decay, hidden_channels, num_layers, att_dropout in tqdm(
+                itertools.product(*hyperparameter_search.values())):
+            cfg.lm.train.lr = lr
+            cfg.lm.train.grad_acc_steps = grad_acc_steps
+            cfg.lm.train.warmup_epochs = warmup_epochs
+            cfg.lm.train.dropout = dropout
+            cfg.lm.train.weight_decay = weight_decay
+            cfg.lm.train.att_dropout = att_dropout
+            print_logger.info(f"lr: {lr}, grad_acc_steps: {grad_acc_steps}, warmup_epochs: {warmup_epochs}, "
+                              f"dropout: {dropout}, weight_decay: {weight_decay}, hidden_channels: {hidden_channels}, "
+                              f"num_layers: {num_layers}, att_dropout: {att_dropout}")
+            trainer = LMTrainer(cfg)
+            trainer.train()
+            start_inf = time.time()
+            result_test = trainer.eval_and_save(trainer.test_dataset)
+            eval_time = time.time() - start_inf
+            result_valid = trainer.eval_and_save(trainer.val_dataset)
+            result_train = trainer.eval_and_save(trainer.train_dataset)
+            result_all = {
+                key: (result_train[key], result_valid[key], result_test[key])
+                for key in result_test.keys()
+            }
+            for key, result in result_all.items():
+                loggers[key].add_result(run_id, result)
 
-        trainer.print_logger.info('---')
-        save_run_results_to_csv(cfg, loggers, seed, run_id)
+                trainer.tensorboard_writer.add_scalar(f"Metrics/Train/{key}", result[0])
+                trainer.tensorboard_writer.add_scalar(f"Metrics/Valid/{key}", result[1])
+                trainer.tensorboard_writer.add_scalar(f"Metrics/Test/{key}", result[2])
 
-    print('All runs:')
+                train_hits, valid_hits, test_hits = result
+                trainer.print_logger.info(
+                    f'Run: {run_id + 1:02d}, Key: {key}, '
+                    f'Train: {100 * train_hits:.2f}, Valid: {100 * valid_hits:.2f}, Test: {100 * test_hits:.2f}%')
 
-    result_dict = {}
-    for key in loggers:
-        print(key)
-        _, _, _, valid_test, _, _ = loggers[key].calc_all_stats()
-        result_dict[key] = valid_test
+            trainer.print_logger.info('---')
+            save_run_results_to_csv(cfg, loggers, seed, run_id)
 
-    trainer.save_result(result_dict)
+            run_result = {}
+            for key in trainer.loggers.keys():
+                if trainer.loggers[key].results == [[], []]:
+                    run_result[key] = None
+                else:
+                    # refer to calc_run_stats in Logger class
+                    _, _, _, test_bvalid = trainer.loggers[key].calc_run_stats(run_id)
+                    run_result[key] = test_bvalid
 
-    print_logger.info(f"Results for: {cfg.model.type}")
-    print_logger.info(f"Model Params: {trainer.trainable_params}")
-    print_logger.info(f'Num parameters: {cfg.model.params}')
-    print_logger.info(f"Inference time: {eval_time}")
+            run_result.update(
+                {'lr': lr, 'grad_acc_steps': grad_acc_steps, 'warmup_epochs': warmup_epochs, 'dropout': dropout,
+                    'weight_decay': weight_decay, 'hidden_channels': hidden_channels, 'num_layers': num_layers,
+                    'att_dropout': att_dropout}
+            )
+            print_logger.info(run_result)
+
+            to_file = f'{cfg.data.name}_{cfg.model.type}_tune_result.csv'
+            trainer.save_tune(run_result, to_file)
+            torch.cuda.empty_cache()
+
+
+
 
 
