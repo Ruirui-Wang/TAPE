@@ -87,6 +87,7 @@ if __name__ == "__main__":
     cfg.merge_from_list(args.opts)
 
     cfg.data.name = args.data
+    cfg.wandb.name_tag = args.embedder +'-'+ cfg.wandb.name_tag
 
     cfg.data.device = args.device
     cfg.model.device = args.device
