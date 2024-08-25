@@ -147,7 +147,7 @@ class LMTrainer():
             warmup_steps=warmup_steps,
             num_train_epochs=self.epochs,
             dataloader_num_workers=1,
-            fp16=False,
+            fp16=True,
             dataloader_drop_last=True,
             max_grad_norm=10.0,
         )
