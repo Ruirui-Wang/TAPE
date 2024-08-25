@@ -119,6 +119,9 @@ if __name__ == "__main__":
             splits['train'].x = torch.tensor(data.x)
             splits['valid'].x = torch.tensor(data.x)
             splits['test'].x = torch.tensor(data.x)
+            splits['train'].emb = torch.tensor(data.x)
+            splits['valid'].emb = torch.tensor(data.x)
+            splits['test'].emb = torch.tensor(data.x)
             print('Replaced node_features with saved features')
         else:
             print('Please regenerate node features')
