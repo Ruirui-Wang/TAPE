@@ -94,9 +94,14 @@ class LMTrainer():
         # Define pretrained tokenizer and model
         bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
         for name, param in bert_model.named_parameters():
-            if 'encoder.layer.5' in name and 'minilm' in cfg.lm.model.name:
+            print(name)
+            if 'encoder.layer.5' in name and 'MiniLM' in cfg.lm.model.name:
                 break
             if 'layers.31' in name and 'Llama' in cfg.lm.model.name:
+                break
+            if 'encoder.layer.11' in name and 'bert' in cfg.lm.model.name:
+                break
+            if 'encoder.layer.23' in name and 'e5-large' in cfg.lm.model.name:
                 break
             param.requires_grad = False
         self.model = BertClassifier(bert_model,
@@ -147,7 +152,7 @@ class LMTrainer():
             warmup_steps=warmup_steps,
             num_train_epochs=self.epochs,
             dataloader_num_workers=1,
-            fp16=True,
+            fp16=False,
             dataloader_drop_last=True,
             max_grad_norm=10.0,
         )
