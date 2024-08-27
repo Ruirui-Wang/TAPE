@@ -3,7 +3,7 @@ device: 0
 lm:
   model:
     feat_shrink: 
-    name: sentence-transformers/all-MiniLM-L6-v2
+    name: intfloat/e5-large-v2
   train:
     att_dropout: 0.1
     batch_size: 9
