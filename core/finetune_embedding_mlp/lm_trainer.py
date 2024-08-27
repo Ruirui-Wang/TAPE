@@ -303,7 +303,6 @@ if __name__ == '__main__':
 
     print_logger.info(f"Results for: {cfg.model.type}")
     print_logger.info(f"Model Params: {trainer.trainable_params}")
-    print_logger.info(f'Num parameters: {cfg.model.params}')
     print_logger.info(f"Inference time: {eval_time}")
 
 
