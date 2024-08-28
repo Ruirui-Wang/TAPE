@@ -3,14 +3,14 @@ device: 0
 lm:
   model:
     feat_shrink: 
-    name: bert-base-uncased
+    name: meta-llama/Meta-Llama-3-8B
   train:
     att_dropout: 0.1
-    batch_size: 9
+    batch_size: 1
     cla_dropout: 0.4
     dropout: 0.3
-    epochs: 24
-    eval_patience: 100000
+    epochs: 1
+    eval_patience: 10000
     grad_acc_steps: 1
     lr: 0.0001
     use_gpt: False
@@ -30,7 +30,7 @@ data:
 
 out_dir: results
 metric_best: acc
-cfg_dest: ft-bert.yaml
+cfg_dest: ft-llama.yaml
 print: file
 accelerator: auto
 num_threads: 11
@@ -51,7 +51,7 @@ train:
 
 model:
   device: 0
-  type: ft-MLP-bert
+  type: ft-MLP-llama
   hidden_channels: 128 #
   num_layers: 3 #
   dropout: 0.1
