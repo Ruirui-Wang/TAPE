@@ -4,7 +4,7 @@ import gc
 import transformers
 from sentence_transformers import SentenceTransformer
 from torch import Tensor, nn
-from transformers import BertTokenizer, BertModel, AutoTokenizer, AutoModel
+from transformers import BertTokenizer, BertModel, AutoTokenizer, AutoModel, AutoModelForCausalLM
 import torch_geometric.transforms as T
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -302,6 +302,23 @@ if __name__ == '__main__':
                         batch_features = outputs.pooler_output
                         node_features.append(batch_features)
                 node_features = torch.cat(node_features, dim=0)
+            elif cfg.embedder.type == 'gemma':
+                tokenizer = AutoTokenizer.from_pretrained("google/gemma-7b")
+                model = AutoModelForCausalLM.from_pretrained("google/gemma-7b", device_map="auto")
+                emb_params = params_count(model)
+                node_features = []
+                batch_size = 64
+                for i in range(0, len(text), batch_size):
+                    batch_texts = text[i:i + batch_size]
+                    encoded_input = tokenizer(batch_texts, return_tensors='pt', padding=True, truncation=True,
+                                              max_length=512).to(cfg.device)
+                    with torch.no_grad():
+                        outputs = model(**encoded_input)
+                        batch_features = outputs.last_hidden_state
+                        batch_features = torch.mean(batch_features, dim=1)
+                        node_features.append(batch_features)
+                node_features = torch.cat(node_features, dim=0)
+                node_features = node_features.to(torch.float32)
             node_features = torch.tensor(node_features)
             torch.save(node_features, saved_features_path)
         emb_time = time.time() - start_emb

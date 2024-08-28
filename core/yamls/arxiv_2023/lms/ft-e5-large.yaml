@@ -30,7 +30,7 @@ data:
 
 out_dir: results
 metric_best: acc
-cfg_dest: ft-minilm.yaml
+cfg_dest: ft-e5-large.yaml
 print: file
 accelerator: auto
 num_threads: 11
@@ -51,7 +51,7 @@ train:
 
 model:
   device: 0
-  type: ft-MLP-minilm
+  type: ft-MLP-e5-large
   hidden_channels: 128 #
   num_layers: 3 #
   dropout: 0.1
