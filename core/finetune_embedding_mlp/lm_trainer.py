@@ -22,8 +22,6 @@ from finetune_dataset import LinkPredictionDataset
 from utils import init_path, time_logger
 from ogb.linkproppred import Evaluator
 import numpy as np
-from torch_geometric.data import Data
-from torch_geometric.loader import DataLoader
 from heuristic.eval import get_metric_score
 from graphgps.utility.utils import config_device, Logger
 from torch.utils.tensorboard import SummaryWriter

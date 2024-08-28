@@ -23,7 +23,6 @@ import torch
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from transformers import AutoTokenizer, AutoModel
-from sentence_transformers import SentenceTransformer
 import torch.nn.functional as F
 from tqdm import tqdm
 from torch.utils.data import DataLoader, TensorDataset
@@ -822,6 +821,7 @@ def use_pretrained_llm_embeddings(model_type: str, model_name: str, data: List[s
     return embeddings
             
 def sentence_transformer_embedding_generation(model_name: str, data: List[str]) -> torch.Tensor:
+    from sentence_transformers import SentenceTransformer
     embedding_model = SentenceTransformer(model_name)
     print("Start sentence embedding generation")
     embeddings = torch.tensor(embedding_model.encode(data))
@@ -884,6 +884,7 @@ def shallow_embedding_generation(model_name: str, data: List[str]) -> torch.Tens
     return embeddings
 
 def custom_model_embedding_generation(model_path: str, data: List[str]) -> torch.Tensor:
+    from sentence_transformers import SentenceTransformer
     embedding_model = SentenceTransformer(model_path)
     print("Start sentence embedding generation")
     embeddings = torch.tensor(embedding_model.encode(data))
