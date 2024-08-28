@@ -1,5 +1,6 @@
 import os
 import logging
+import shutil
 import sys
 import numpy as np
 import time
@@ -706,6 +707,8 @@ def custom_set_run_dir(cfg, wandb_tag):
     if cfg.train.auto_resume:
         os.makedirs(cfg.run_dir, exist_ok=True)
     else:
+        if os.path.exists(cfg.run_dir):
+            shutil.rmtree(cfg.run_dir)
         makedirs_rm_exist(cfg.run_dir)
 
 
