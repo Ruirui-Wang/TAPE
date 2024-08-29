@@ -2,7 +2,7 @@ dataset: cora
 device: 0
 lm:
   model:
-    feat_shrink: 1
+    feat_shrink:
     name: meta-llama/Meta-Llama-3-8B
   train:
     att_dropout: 0.1
