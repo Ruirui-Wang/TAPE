@@ -188,7 +188,7 @@ class LMTrainer():
             output_dir=self.output_dir,
             do_train=False,
             do_predict=True,
-            per_device_eval_batch_size=self.batch_size * 8,
+            per_device_eval_batch_size=self.batch_size * 1,
             dataloader_drop_last=False,
             dataloader_num_workers=1,
             fp16_full_eval=False,

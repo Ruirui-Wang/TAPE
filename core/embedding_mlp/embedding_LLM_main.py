@@ -300,22 +300,22 @@ if __name__ == '__main__':
                     with torch.no_grad():
                         outputs = model(**encoded_input)
                         batch_features = outputs.pooler_output
+                        print(batch_features.shape)
                         node_features.append(batch_features)
                 node_features = torch.cat(node_features, dim=0)
             elif cfg.embedder.type == 'gemma':
-                tokenizer = AutoTokenizer.from_pretrained("google/gemma-7b")
-                model = AutoModelForCausalLM.from_pretrained("google/gemma-7b", device_map="auto")
+                tokenizer = AutoTokenizer.from_pretrained("google/gemma-2-2b")
+                model = AutoModelForCausalLM.from_pretrained("google/gemma-2-2b", device_map="auto")
                 emb_params = params_count(model)
                 node_features = []
-                batch_size = 64
+                batch_size = 16
                 for i in range(0, len(text), batch_size):
                     batch_texts = text[i:i + batch_size]
-                    encoded_input = tokenizer(batch_texts, return_tensors='pt', padding=True, truncation=True,
-                                              max_length=512).to(cfg.device)
+                    input_ids = tokenizer(batch_texts, return_tensors="pt", padding='max_length', truncation=True, max_length=512).to("cuda")
                     with torch.no_grad():
-                        outputs = model(**encoded_input)
-                        batch_features = outputs.last_hidden_state
+                        batch_features = model.get_input_embeddings()(input_ids.input_ids)
                         batch_features = torch.mean(batch_features, dim=1)
+                        print(batch_features)
                         node_features.append(batch_features)
                 node_features = torch.cat(node_features, dim=0)
                 node_features = node_features.to(torch.float32)
@@ -324,6 +324,7 @@ if __name__ == '__main__':
         emb_time = time.time() - start_emb
 
         node_features = torch.tensor(node_features)
+        print(node_features.shape)
 
         for run_id in range(args.repeat):
             seed = run_id + args.start_seed
