@@ -2,6 +2,7 @@ import os, sys
 from typing import Dict
 
 from torch_sparse import SparseTensor
+import torch.nn.functional as F
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
@@ -108,7 +109,14 @@ class LMTrainer():
 
         # Define pretrained tokenizer and model
         bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
-        self.data.x = self.data.x[:, :bert_model.config.hidden_size]
+        hidden_size = bert_model.config.hidden_size
+        current_size = self.data.x.size(1)
+
+        if current_size < hidden_size:
+            padding_size = hidden_size - current_size
+            self.data.x = F.pad(self.data.x, (0, padding_size), "constant", 0)
+        elif current_size > hidden_size:
+            self.data.x = self.data.x[:, :hidden_size]
         for name, param in bert_model.named_parameters():
             print(name)
             if 'encoder.layer.5' in name and 'MiniLM' in cfg.lm.model.name:
@@ -270,7 +278,10 @@ if __name__ == '__main__':
         cfg_decoder = set_cfg(FILE_PATH, args.decoder)
         cfg.decoder = cfg_decoder
     else:
-        cfg.decoder.mode.type = 'MLP'
+        from yacs.config import CfgNode as CN
+        cfg.decoder = CN()
+        cfg.decoder.model = CN()
+        cfg.decoder.model.type = 'MLP'
     cfg.merge_from_list(args.opts)
 
     cfg.data.device = args.device
