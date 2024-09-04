@@ -1,7 +1,6 @@
 import os, sys
 from typing import Dict
 
-from torch_sparse import SparseTensor
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
@@ -18,7 +17,7 @@ from data_utils.load import load_data_lp, load_graph_lp
 from graphgps.utility.utils import save_run_results_to_csv
 
 from transformers import AutoTokenizer, AutoModel, TrainingArguments, Trainer, IntervalStrategy
-from model import BertClassifier, BertClaInfModel,NCNClaInfModel,NCNClassifier
+from model import BertClassifier, BertClaInfModel
 from finetune_dataset import LinkPredictionDataset
 from utils import init_path, time_logger
 from ogb.linkproppred import Evaluator
@@ -37,19 +36,7 @@ def compute_metrics(p):
     pred = np.argmax(pred, axis=1)
     accuracy = accuracy_score(y_true=labels, y_pred=pred)
     return {"accuracy": accuracy}
-def ncn_dataset(data, splits):
-    edge_index = data.edge_index
-    data.num_nodes = data.x.shape[0]
-    data.edge_weight = None
-    data.adj_t = SparseTensor.from_edge_index(edge_index, sparse_sizes=(data.num_nodes, data.num_nodes))
-    data.adj_t = data.adj_t.to_symmetric().coalesce()
-    data.max_x = -1
-    # Use training + validation edges for inference on test set.
-    val_edge_index = splits['valid']['pos_edge_label_index']
-    full_edge_index = torch.cat([edge_index, val_edge_index], dim=-1)
-    data.full_adj_t = SparseTensor.from_edge_index(full_edge_index, sparse_sizes=(data.num_nodes, data.num_nodes)).coalesce()
-    data.full_adj_t = data.full_adj_t.to_symmetric()
-    return data
+
 
 class LMTrainer():
     def __init__(self, cfg):
@@ -58,7 +45,6 @@ class LMTrainer():
 
         self.model_name = cfg.lm.model.name
         self.feat_shrink = cfg.lm.model.feat_shrink
-        self.decoder = cfg.decoder
 
         self.weight_decay = cfg.lm.train.weight_decay
         self.dropout = cfg.lm.train.dropout
@@ -80,8 +66,6 @@ class LMTrainer():
         splits = random_sampling(splits, args.downsampling)
 
         self.data = data.to(self.device)
-        self.data = ncn_dataset(self.data, splits)
-
         self.num_nodes = data.num_nodes
         self.n_labels = 2
 
@@ -105,10 +89,16 @@ class LMTrainer():
             [splits['test'].pos_edge_label_index, splits['test'].neg_edge_label_index], dim=1), torch.cat(
             [splits['test'].pos_edge_label, splits['test'].neg_edge_label], dim=0))
 
-
         # Define pretrained tokenizer and model
-        bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
-        self.data.x = self.data.x[:, :bert_model.config.hidden_size]
+        from transformers import BitsAndBytesConfig, AutoModelForCausalLM
+
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_quant_storage=torch.bfloat16,
+        )
+        bert_model = AutoModelForCausalLM.from_pretrained(self.model_name, quantization_config=bnb_config, torch_dtype=torch.bfloat16,)
         for name, param in bert_model.named_parameters():
             print(name)
             if 'encoder.layer.5' in name and 'MiniLM' in cfg.lm.model.name:
@@ -120,12 +110,9 @@ class LMTrainer():
             if 'encoder.layer.23' in name and 'e5-large' in cfg.lm.model.name:
                 break
             param.requires_grad = False
-        if self.decoder.model.type == 'MLP':
-            self.model = BertClassifier(bert_model,
+        self.model = BertClassifier(bert_model,
                                     cfg,
                                     feat_shrink=self.feat_shrink).to(self.device)
-        elif self.decoder.model.type == 'NCN' or self.decoder.model.type == 'NCNC':
-            self.model = NCNClassifier(bert_model, cfg, self.data).to(self.device)
 
         # prev_ckpt = f'prt_lm/{self.dataset_name}/{self.model_name}.ckpt'
         # if self.use_gpt_str and os.path.exists(prev_ckpt):
@@ -174,15 +161,25 @@ class LMTrainer():
             fp16=False,
             dataloader_drop_last=True,
             max_grad_norm=10.0,
-            remove_unused_columns = False if self.decoder.model.type == 'NCN'or self.decoder.model.type == 'NCNC' else True
         )
-        self.trainer = Trainer(
+        from trl import SFTTrainer
+        from peft import LoraConfig
+
+        peft_config = LoraConfig(
+            lora_alpha=16,
+            lora_dropout=0.1,
+            r=64,
+            bias="none",
+            task_type="CAUSAL_LM",
+            target_modules="all-linear",
+        )
+        self.trainer = SFTTrainer(
             model=self.model,
-            args=args,
+            peft_config=peft_config,
             train_dataset=self.train_dataset,
             eval_dataset=self.val_dataset,
             compute_metrics=compute_metrics,
-
+            args=args,
             # callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
         )
 
@@ -257,7 +254,6 @@ def parse_args() -> argparse.Namespace:
                         default=1000)
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='See graphgym/config.py for remaining options.')
-    parser.add_argument('--decoder',type=str, required=False)
     return parser.parse_args()
 
 
@@ -266,11 +262,6 @@ if __name__ == '__main__':
 
     args = parse_args()
     cfg = set_cfg(FILE_PATH, args.cfg_file)
-    if args.decoder:
-        cfg_decoder = set_cfg(FILE_PATH, args.decoder)
-        cfg.decoder = cfg_decoder
-    else:
-        cfg.decoder.mode.type = 'MLP'
     cfg.merge_from_list(args.opts)
 
     cfg.data.device = args.device
