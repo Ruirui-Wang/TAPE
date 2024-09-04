@@ -211,8 +211,12 @@ class LMTrainer():
                          mode='w+',
                          shape=(self.num_nodes, self.n_labels))
 
-        inf_model = BertClaInfModel(
-            self.model, emb, pred, feat_shrink=self.feat_shrink)
+        if self.decoder.model.type == 'MLP':
+            inf_model = BertClaInfModel(
+                self.model, emb, pred, feat_shrink=self.feat_shrink)
+        elif self.decoder.model.type == 'NCN' or self.decoder.model.type == 'NCNC':
+            inf_model = NCNClaInfModel(
+                self.model, emb, pred, self.data, self.data.edge_index, feat_shrink=self.feat_shrink)
         inf_model.eval()
         inference_args = TrainingArguments(
             output_dir=self.output_dir,

@@ -200,7 +200,7 @@ class NCNClassifier(PreTrainedModel):
         cls_token_emb_2 = emb_2.permute(1, 0, 2)[0]
         self.data.x[node_id[:,0]] = cls_token_emb_1
         self.data.x[node_id[:,1]] = cls_token_emb_2
-        h = self.model(self.data.x, adj).detach()  # get the node embeddings
+        h = self.model(self.data.x, adj)  # get the node embeddings
         pos_outs = self.predictor.multidomainforward(h, adj, edge_pos)  # get the prediction
         pos_loss = -F.logsigmoid(pos_outs).mean()
         neg_outs = self.predictor.multidomainforward(h, adj, edge_neg)
@@ -210,28 +210,15 @@ class NCNClassifier(PreTrainedModel):
         return TokenClassifierOutput(loss=loss, logits=pos_outs+neg_outs)
 
 class NCNClaInfModel(PreTrainedModel):
-    def __init__(self, model, cfg, data,inf_edges, dropout=0.0, seed=0, cla_bias=True, feat_shrink=''):
+    def __init__(self, model, emb, pred, data,inf_edges, dropout=0.0, seed=0, cla_bias=True, feat_shrink=''):
         super().__init__(model.config)
+        self.bert_classifier = model
+        self.emb, self.pred = emb, pred
+        self.feat_shrink = feat_shrink
         self.bert_encoder = model
         self.dropout = nn.Dropout(dropout)
         self.edges = inf_edges
         self.data = data
-        hidden_dim = model.config.hidden_size
-        predfn = predictor_dict[cfg.decoder.model.type]
-        if cfg.decoder.model.type == 'NCN':
-            predfn = partial(predfn)
-        elif cfg.decoder.model.type == 'NCNC':
-            predfn = partial(predfn, scale=cfg.decoder.model.probscale, offset=cfg.decoder.model.proboffset,
-                             pt=cfg.decoder.model.pt)
-        self.model = GCN(hidden_dim, cfg.decoder.model.hiddim, cfg.decoder.model.hiddim, cfg.decoder.model.mplayers,
-                         cfg.decoder.model.gnndp, cfg.decoder.model.ln, cfg.decoder.model.res, cfg.decoder.data.max_x,
-                         cfg.decoder.model.model, cfg.decoder.model.jk, cfg.decoder.model.gnnedp,
-                         xdropout=cfg.decoder.model.xdp, taildropout=cfg.decoder.model.tdp,
-                         noinputlin=False)
-
-        self.predictor = predfn(cfg.decoder.model.hiddim, cfg.decoder.model.hiddim, 1, cfg.decoder.model.nnlayers,
-                                cfg.decoder.model.predp, cfg.decoder.model.preedp, cfg.decoder.model.lnnn)
-
         init_random_state(seed)
 
     def forward(self,
@@ -260,24 +247,24 @@ class NCNClaInfModel(PreTrainedModel):
         adj = SparseTensor.from_edge_index(tei, sparse_sizes=(self.data.num_nodes, self.data.num_nodes))
         adjmask[edge_pos] = 1
         adj = adj.to_symmetric()
-        outputs_1 = self.bert_encoder(input_ids=input_1,
+        outputs_1 = self.bert_classifie.bert_encoder(input_ids=input_1,
                                       attention_mask=attention_mask_1,
                                       return_dict=return_dict,
                                       output_hidden_states=True)
-        outputs_2 = self.bert_encoder(input_ids=input_2,
+        outputs_2 = self.bert_classifie.bert_encoder(input_ids=input_2,
                                       attention_mask=attention_mask_2,
                                       return_dict=return_dict,
                                       output_hidden_states=True)
-        emb_1 = self.dropout(outputs_1['hidden_states'][-1])
-        emb_2 = self.dropout(outputs_2['hidden_states'][-1])
+        emb_1 = outputs_1['hidden_states'][-1]
+        emb_2 = outputs_2['hidden_states'][-1]
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
         cls_token_emb_2 = emb_2.permute(1, 0, 2)[0]
         self.data.x[node_id[:, 0]] = cls_token_emb_1
         self.data.x[node_id[:, 1]] = cls_token_emb_2
-        h = self.model(self.data.x, adj).detach()  # get the node embeddings
-        pos_outs = self.predictor.multidomainforward(h, adj, edge_pos)  # get the prediction
+        h = self.bert_classifie.model(self.data.x, adj).detach()  # get the node embeddings
+        pos_outs = self.bert_classifie.predictor.multidomainforward(h, adj, edge_pos)  # get the prediction
         pos_loss = -F.logsigmoid(pos_outs).mean()
-        neg_outs = self.predictor.multidomainforward(h, adj, edge_neg)
+        neg_outs = self.bert_classifie.predictor.multidomainforward(h, adj, edge_neg)
         neg_loss = -F.logsigmoid(-neg_outs).mean()
         loss = neg_loss + pos_loss
-        return TokenClassifierOutput(loss=loss, logits=logits)
+        return TokenClassifierOutput(loss=loss, logits=pos_outs+neg_outs)
