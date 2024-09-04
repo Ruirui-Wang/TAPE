@@ -133,7 +133,7 @@ class LMTrainer():
                                     cfg,
                                     feat_shrink=self.feat_shrink).to(self.device)
         elif self.decoder.model.type == 'NCN' or self.decoder.model.type == 'NCNC':
-            self.model = NCNClassifier(bert_model, cfg, self.data).to(self.device)
+            self.model = NCNClassifier(bert_model, cfg, self.data, self.data.edge_index).to(self.device)
 
         # prev_ckpt = f'prt_lm/{self.dataset_name}/{self.model_name}.ckpt'
         # if self.use_gpt_str and os.path.exists(prev_ckpt):
