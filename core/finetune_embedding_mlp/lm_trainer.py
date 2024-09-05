@@ -230,6 +230,8 @@ class LMTrainer():
 
         trainer = Trainer(model=inf_model, args=inference_args)
         predictor_dict = trainer.predict(eval_data)
+        pred = predictor_dict.predictions
+        pred = pred.squeeze()
         pos_mask = (predictor_dict.label_ids == 1)
         neg_mask = (predictor_dict.label_ids == 0)
 
@@ -237,6 +239,8 @@ class LMTrainer():
         neg_pred = predictor_dict.predictions[neg_mask]
         pos_pred = torch.tensor(pos_pred, dtype=torch.float32)
         neg_pred = torch.tensor(neg_pred, dtype=torch.float32)
+        pos_pred = pos_pred.squeeze()
+        neg_pred = neg_pred.squeeze()
 
         result_mrr = get_metric_score(self.evaluator_hit, self.evaluator_mrr, pos_pred, neg_pred)
         result_mrr.update({'ACC': 0.00})

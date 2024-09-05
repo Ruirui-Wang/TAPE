@@ -186,21 +186,25 @@ class NCNClassifier(PreTrainedModel):
         adj = SparseTensor.from_edge_index(tei, sparse_sizes=(self.data.num_nodes, self.data.num_nodes))
         adjmask[edge_pos] = 1
         adj = adj.to_symmetric()
-        outputs_1 = self.bert_encoder(input_ids=input_1,
-                                      attention_mask=attention_mask_1,
-                                      return_dict=return_dict,
-                                      output_hidden_states=True)
-        outputs_2 = self.bert_encoder(input_ids=input_2,
-                                      attention_mask=attention_mask_2,
-                                      return_dict=return_dict,
-                                      output_hidden_states=True)
+        with torch.no_grad():
+            outputs_1 = self.bert_encoder(input_ids=input_1,
+                                        attention_mask=attention_mask_1,
+                                        return_dict=return_dict,
+                                        output_hidden_states=True)
+            outputs_2 = self.bert_encoder(input_ids=input_2,
+                                        attention_mask=attention_mask_2,
+                                        return_dict=return_dict,
+                                        output_hidden_states=True)
         emb_1 = self.dropout(outputs_1['hidden_states'][-1])
         emb_2 = self.dropout(outputs_2['hidden_states'][-1])
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
         cls_token_emb_2 = emb_2.permute(1, 0, 2)[0]
+        self.data.x = self.data.x.to(cls_token_emb_1.device)
+        adj = adj.to(cls_token_emb_1.device)
+        node_id = node_id.to(cls_token_emb_1.device)
         self.data.x[node_id[:,0]] = cls_token_emb_1
         self.data.x[node_id[:,1]] = cls_token_emb_2
-        h = self.model(self.data.x, adj)  # get the node embeddings
+        h = self.model(self.data.x, adj).detach()  # get the node embeddings
         pos_outs = self.predictor.multidomainforward(h, adj, edge_pos)  # get the prediction
         pos_loss = -F.logsigmoid(pos_outs).mean()
         neg_outs = self.predictor.multidomainforward(h, adj, edge_neg)
@@ -247,11 +251,11 @@ class NCNClaInfModel(PreTrainedModel):
         adj = SparseTensor.from_edge_index(tei, sparse_sizes=(self.data.num_nodes, self.data.num_nodes))
         adjmask[edge_pos] = 1
         adj = adj.to_symmetric()
-        outputs_1 = self.bert_classifie.bert_encoder(input_ids=input_1,
+        outputs_1 = self.bert_classifier.bert_encoder(input_ids=input_1,
                                       attention_mask=attention_mask_1,
                                       return_dict=return_dict,
                                       output_hidden_states=True)
-        outputs_2 = self.bert_classifie.bert_encoder(input_ids=input_2,
+        outputs_2 = self.bert_classifier.bert_encoder(input_ids=input_2,
                                       attention_mask=attention_mask_2,
                                       return_dict=return_dict,
                                       output_hidden_states=True)
@@ -259,12 +263,12 @@ class NCNClaInfModel(PreTrainedModel):
         emb_2 = outputs_2['hidden_states'][-1]
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
         cls_token_emb_2 = emb_2.permute(1, 0, 2)[0]
+        self.data.x = self.data.x.to(cls_token_emb_1.device)
+        adj = adj.to(cls_token_emb_1.device)
+        node_id = node_id.to(cls_token_emb_1.device)
         self.data.x[node_id[:, 0]] = cls_token_emb_1
         self.data.x[node_id[:, 1]] = cls_token_emb_2
-        h = self.bert_classifie.model(self.data.x, adj).detach()  # get the node embeddings
-        pos_outs = self.bert_classifie.predictor.multidomainforward(h, adj, edge_pos)  # get the prediction
-        pos_loss = -F.logsigmoid(pos_outs).mean()
-        neg_outs = self.bert_classifie.predictor.multidomainforward(h, adj, edge_neg)
-        neg_loss = -F.logsigmoid(-neg_outs).mean()
-        loss = neg_loss + pos_loss
-        return TokenClassifierOutput(loss=loss, logits=pos_outs+neg_outs)
+        h = self.bert_classifier.model(self.data.x, adj)  # get the node embeddings
+        output = self.bert_classifier.predictor.multidomainforward(h, adj, node_id.permute(1, 0))
+        loss = -F.logsigmoid(output).mean()
+        return TokenClassifierOutput(loss=loss, logits=output)
