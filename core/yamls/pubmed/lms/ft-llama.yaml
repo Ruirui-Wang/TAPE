@@ -1,16 +1,16 @@
-dataset: cora
+dataset: pubmed
 device: 0
 lm:
   model:
-    feat_shrink: 
-    name: bert-base-uncased
+    feat_shrink:
+    name: meta-llama/Meta-Llama-3-8B
   train:
     att_dropout: 0.1
-    batch_size: 128
+    batch_size: 1
     cla_dropout: 0.4
     dropout: 0.3
-    epochs: 20
-    eval_patience: 100000000
+    epochs: 0.0001
+    eval_patience: 10000
     grad_acc_steps: 1
     lr: 0.0001
     use_gpt: False
@@ -19,7 +19,7 @@ lm:
 runs: 5
 seed: 0
 data:
-  name: cora
+  name: pubmed
   undirected: True
   include_negatives: True
   val_pct: 0.15
@@ -30,7 +30,7 @@ data:
 
 out_dir: results
 metric_best: acc
-cfg_dest: ft-bert.yaml
+cfg_dest: ft-llama.yaml
 print: file
 accelerator: auto
 num_threads: 11
@@ -51,7 +51,7 @@ train:
 
 model:
   device: 0
-  type: ft-MLP-bert
+  type: ft-MLP-llama
   hidden_channels: 128 #
   num_layers: 3 #
   dropout: 0.1
