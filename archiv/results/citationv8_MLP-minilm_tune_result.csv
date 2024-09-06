@@ -1,0 +1,11 @@
+Metric,Hits@1,Hits@3,Hits@10,Hits@20,Hits@50,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit20,mrr_hit50,mrr_hit100,AUC,AP,ACC,base_lr,batch_size
+citationv8_run<built-in function id>_MLP-minilm_hyperzxlu74xu,14.04,40.54,55.78,64.35,77.98,85.13,33.34,14.04,40.54,55.78,64.35,77.98,85.13,98.6,98.67,94.18,0.01,64
+citationv8_run<built-in function id>_MLP-minilm_hyper4r9dxnie,12.29,40.54,55.78,64.35,77.98,85.13,29.35,12.29,40.54,55.78,64.35,77.98,85.13,98.6,98.67,94.18,0.01,128
+citationv8_run<built-in function id>_MLP-minilm_hypermqfor1xe,12.29,40.54,55.78,66.38,77.98,85.13,29.35,12.29,40.54,55.78,66.38,77.98,85.13,98.6,98.68,94.18,0.01,256
+citationv8_run<built-in function id>_MLP-minilm_hyper73rtcrpx,12.29,40.54,55.78,66.38,78.31,85.49,29.35,12.29,40.54,55.78,66.38,78.31,85.49,98.64,98.72,94.38,0.001,64
+citationv8_run<built-in function id>_MLP-minilm_hyper3lt37bf3,12.29,40.54,55.78,66.38,78.31,85.49,29.35,12.29,40.54,55.78,66.38,78.31,85.49,98.64,98.72,94.38,0.001,128
+citationv8_run<built-in function id>_MLP-minilm_hyperbrd451w3,12.29,40.54,55.78,66.38,78.31,85.28,29.35,12.29,40.54,55.78,66.38,78.31,85.28,98.64,98.72,94.38,0.001,256
+citationv8_run<built-in function id>_MLP-minilm_hyper6l8ja99g,12.29,40.54,55.78,66.38,78.31,85.28,29.35,12.29,40.54,55.78,66.38,78.31,85.28,98.64,98.72,94.38,0.0001,64
+citationv8_run<built-in function id>_MLP-minilm_hyperwbumwvoj,12.29,40.54,52.43,66.38,78.31,85.28,29.35,12.29,40.54,52.43,66.38,78.31,85.28,98.64,98.72,94.38,0.0001,128
+citationv8_run<built-in function id>_MLP-minilm_hyper1dqsapvq,12.29,40.54,52.43,66.38,78.31,85.28,29.35,12.29,40.54,52.43,66.38,78.31,85.28,98.64,98.72,94.38,0.0001,256
+Best,14.04,40.54,55.78,66.38,78.31,85.49,33.34,14.04,40.54,55.78,66.38,78.31,85.49,98.64,98.72,94.38,0.01,256

@@ -1,0 +1,141 @@
+accelerator: auto
+cfg_dest: heart_gnn_unified.yaml
+data:
+  device: cpu
+  include_negatives: true
+  name: pubmed
+  num_features: 1433
+  split_index:
+  - 0.8
+  - 0.15
+  - 0.05
+  split_labels: true
+  test_pct: 0.05
+  undirected: true
+  val_pct: 0.15
+device: cpu
+metric_best:
+- Hits@10
+- MRR
+- AUC
+model:
+  GAT_Variant:
+    dropout: 0.1
+    emb: false
+    heads: 4
+    hidden_channels: 32
+    in_channels: None
+    negative_slope: 0.1
+    num_layers: 2
+    out_channels: 32
+  GCN_Variant:
+    dropout: 0.1
+    hidden_channels: 32
+    in_channels: None
+    negative_slope: 0.1
+    num_layers: 1
+    out_channels: 32
+  GIN_Variant:
+    dropout: 0.1
+    emb: false
+    hidden_channels: 64
+    mlp_layer: 1
+    num_layers: 1
+    out_channels: 64
+  SAGE_Variant:
+    dropout: 0.1
+    emb: false
+    hidden_channels: 128
+    in_channels: 500
+    num_layers: 3
+    out_channels: 128
+  batch_size_sampler: 1024
+  device: cpu
+  params: 206401
+  sampler: gsaint
+  type: SAGE_Variant
+num_threads: 11
+optimizer:
+  base_lr: 0.0015
+  type: adam
+  weight_decay: 0.0005
+out_dir: results/heart_gnn_models-Tune
+print: file
+run:
+  multiple_splits: None
+  num_threads: 11
+  seed: 0
+run_dir: results/heart_gnn_models-Tune/pubmed_runk7mhbq2p_SAGE_Variant
+run_id: 0
+sampler:
+  gsaint:
+    num_steps: 10
+    sample_coverage: 100
+    sampler_batch_size: 1024
+    walk_length: 10
+save:
+  output_dir: ./
+score:
+  GAT_Variant:
+    product: dot
+    score_cat_n2v_feat: false
+    score_cat_node_feat_mf: false
+    score_dropout: 0.1
+    score_gin_mlp_layer: 2
+    score_hidden_channels: 64
+    score_in_channels: 32
+    score_num_layers: 3
+    score_num_layers_predictor: 3
+    score_out_channels: 1
+  GCN_Variant:
+    product: dot
+    score_cat_n2v_feat: false
+    score_cat_node_feat_mf: false
+    score_dropout: 0.1
+    score_gin_mlp_layer: 2
+    score_hidden_channels: 64
+    score_in_channels: 32
+    score_num_layers: 3
+    score_num_layers_predictor: 3
+    score_out_channels: 1
+  GIN_Variant:
+    product: dot
+    score_cat_n2v_feat: false
+    score_cat_node_feat_mf: false
+    score_dropout: 0.1
+    score_gin_mlp_layer: 2
+    score_hidden_channels: 64
+    score_in_channels: 64
+    score_num_layers: 3
+    score_num_layers_predictor: 3
+    score_out_channels: 1
+  SAGE_Variant:
+    product: dot
+    score_cat_n2v_feat: false
+    score_cat_node_feat_mf: false
+    score_dropout: 0.1
+    score_gin_mlp_layer: 2
+    score_hidden_channels: 64
+    score_in_channels: 128
+    score_num_layers: 3
+    score_num_layers_predictor: 3
+    score_out_channels: 1
+  type: mlp_score
+seed: 0
+train:
+  auto_resume: false
+  batch_size: 1024
+  device: 0
+  epochs: 1000
+  eval_period: 1
+  finetune: false
+  kill_cnt: 30
+  l2: 0.0
+  lr: 0.001
+  mode: custom
+  runs: 10
+  use_valedges_as_input: true
+wandb:
+  name_tag: pubmed_runk7mhbq2p_SAGE_Variant
+  project: gtblueprint
+  use: true

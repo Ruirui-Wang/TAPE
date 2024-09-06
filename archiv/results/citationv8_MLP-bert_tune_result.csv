@@ -1,0 +1,11 @@
+Metric,Hits@1,Hits@3,Hits@10,Hits@20,Hits@50,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit20,mrr_hit50,mrr_hit100,AUC,AP,ACC,base_lr,batch_size
+citationv8_run<built-in function id>_MLP-bert_hyper1w4ugrw7,0.0,0.31,1.5,2.91,4.87,8.21,0.7,0.0,0.31,1.5,2.91,4.87,8.21,75.12,72.09,66.66,0.01,64
+citationv8_run<built-in function id>_MLP-bert_hyperdx8tjg9x,0.44,0.8,1.75,3.35,6.66,11.22,1.12,0.44,0.8,1.75,3.35,6.66,11.22,75.12,72.89,66.66,0.01,128
+citationv8_run<built-in function id>_MLP-bert_hyper7j8yum50,0.07,0.8,1.42,3.14,8.03,11.76,1.12,0.07,0.8,1.42,3.14,8.03,11.76,75.12,74.24,68.03,0.01,256
+citationv8_run<built-in function id>_MLP-bert_hyperc28e801d,0.0,1.36,2.81,4.94,9.39,15.21,1.39,0.0,1.36,2.81,4.94,9.39,15.21,78.0,77.12,70.38,0.001,64
+citationv8_run<built-in function id>_MLP-bert_hyperr7l5y1zd,0.0,1.36,2.81,4.94,9.39,14.1,1.39,0.0,1.36,2.81,4.94,9.39,14.1,78.0,77.12,70.38,0.001,128
+citationv8_run<built-in function id>_MLP-bert_hypertmdt5tlu,0.0,1.78,2.55,4.94,8.6,14.1,1.45,0.0,1.78,2.55,4.94,8.6,14.1,78.16,77.04,70.85,0.001,256
+citationv8_run<built-in function id>_MLP-bert_hypernsn9tg5q,0.0,1.78,2.76,4.61,8.6,14.1,1.45,0.0,1.78,2.76,4.61,8.6,14.1,78.16,77.04,70.9,0.0001,64
+citationv8_run<built-in function id>_MLP-bert_hyperiivykp5g,0.0,1.78,2.76,4.61,8.6,14.1,1.45,0.0,1.78,2.76,4.61,8.6,14.1,78.16,77.04,70.9,0.0001,128
+citationv8_run<built-in function id>_MLP-bert_hypergazuaz0x,0.0,1.78,2.76,4.61,8.6,14.1,1.45,0.0,1.78,2.76,4.61,8.6,14.1,78.16,77.04,70.9,0.0001,256
+Best,0.44,1.78,2.81,4.94,9.39,15.21,1.45,0.44,1.78,2.81,4.94,9.39,15.21,78.16,77.12,70.9,0.01,256

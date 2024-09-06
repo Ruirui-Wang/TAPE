@@ -1,0 +1,11 @@
+Metric,Hits@1,Hits@3,Hits@10,Hits@20,Hits@50,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit20,mrr_hit50,mrr_hit100,AUC,AP,ACC,base_lr,batch_size
+ogbn-arxiv_run<built-in function id>_MLP-bert_hyperj52jjlxx,0.03,0.34,2.52,5.16,9.72,14.51,1.54,0.03,0.34,2.52,5.16,9.72,14.51,76.89,79.25,69.59,0.01,64
+ogbn-arxiv_run<built-in function id>_MLP-bert_hyperystkyypq,0.25,0.95,2.52,5.16,9.72,14.62,1.21,0.25,0.95,2.52,5.16,9.72,14.62,77.29,79.25,71.53,0.01,128
+ogbn-arxiv_run<built-in function id>_MLP-bert_hyperwiry1xmh,0.25,0.95,2.52,5.16,9.72,14.62,1.21,0.25,0.95,2.52,5.16,9.72,14.62,77.29,79.25,71.53,0.01,256
+ogbn-arxiv_run<built-in function id>_MLP-bert_hyper40qcdefj,0.1,1.3,3.23,5.53,11.45,15.42,1.47,0.1,1.3,3.23,5.53,11.45,15.42,84.12,83.98,75.61,0.001,64
+ogbn-arxiv_run<built-in function id>_MLP-bert_hyper8out6pg5,0.1,1.15,3.23,5.53,11.45,15.42,1.47,0.1,1.15,3.23,5.53,11.45,15.42,84.12,83.98,75.94,0.001,128
+ogbn-arxiv_run<built-in function id>_MLP-bert_hyperqisf0jcq,0.03,1.45,3.74,6.21,11.12,17.05,1.51,0.03,1.45,3.74,6.21,11.12,17.05,84.23,84.13,75.94,0.001,256
+ogbn-arxiv_run<built-in function id>_MLP-bert_hyper8gglamgj,0.03,1.32,3.74,6.13,11.72,16.48,1.59,0.03,1.32,3.74,6.13,11.72,16.48,85.04,84.76,77.04,0.0001,64
+ogbn-arxiv_run<built-in function id>_MLP-bert_hyper41ej5q24,0.03,1.32,3.74,6.13,11.72,16.48,1.59,0.03,1.32,3.74,6.13,11.72,16.48,85.04,84.76,77.04,0.0001,128
+ogbn-arxiv_run<built-in function id>_MLP-bert_hyper4riw992v,0.03,1.32,3.74,6.13,11.72,16.48,1.59,0.03,1.32,3.74,6.13,11.72,16.48,85.04,84.76,77.04,0.0001,256
+Best,0.25,1.45,3.74,6.21,11.72,17.05,1.59,0.25,1.45,3.74,6.21,11.72,17.05,85.04,84.76,77.04,0.01,256

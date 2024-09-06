@@ -1,0 +1,53 @@
+accelerator: auto
+cfg_dest: minilm.yaml
+data:
+  device: cpu
+  include_negatives: true
+  method: w2v
+  name: pwc_small
+  split_index:
+  - 0.8
+  - 0.15
+  - 0.05
+  split_labels: true
+  test_pct: 0.05
+  undirected: true
+  val_pct: 0.15
+device: cpu
+embedder:
+  type: minilm
+metric_best: acc
+model:
+  device: cpu
+  dropout: 0.1
+  hidden_channels: 128
+  num_layers: 3
+  type: MLP-minilm
+num_threads: 11
+optimizer:
+  base_lr: 0.0001
+  type: adam
+  weight_decay: 0.0005
+out_dir: results/minilm-minilm-pwc_small-origin
+params: 65921
+print: file
+run:
+  multiple_splits: None
+  num_threads: 11
+  seed: 0
+run_dir: results/minilm-minilm-pwc_small-origin/pwc_small_run<built-in function id>_MLP-minilm_hyper3j9v4sog
+run_id: 1
+seed: 1
+train:
+  auto_resume: false
+  batch_size: 512
+  device: 0
+  epochs: 50
+  eval_period: 1
+  final_eval: false
+  finetune: false
+  mode: custom
+wandb:
+  name_tag: pwc_small_run<built-in function id>_MLP-minilm_hyper3j9v4sog
+  project: gtblueprint
+  use: true

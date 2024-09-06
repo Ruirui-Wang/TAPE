@@ -1,0 +1,2 @@
+model,seed,Hits@1,Hits@3,Hits@10,Hits@20,Hits@50,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit20,mrr_hit50,mrr_hit100,AUC,AP,ACC
+ft-MLP-minilm,4,20.95,22.53,28.46,32.81,39.13,49.01,23.38,20.95,22.53,28.46,32.81,39.13,49.01,51.18,65.76,0.0

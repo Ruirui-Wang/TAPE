@@ -1,0 +1,58 @@
+cfg_dest: neognn.yaml
+data:
+  device: cuda:0
+  include_negatives: true
+  name: pubmed
+  num_features: 1433
+  split_index:
+  - 0.8
+  - 0.15
+  - 0.05
+  split_labels: true
+  test_pct: 0.05
+  undirected: true
+  val_pct: 0.15
+device: cuda:0
+metric_best: acc
+model:
+  beta: 0.1
+  device: cuda:0
+  dropout: 0.3
+  f_edge_dim: 8
+  f_node_dim: 128
+  g_phi_dim: 128
+  hidden_channels: 256
+  in_channels: 1433
+  mlp_num_layers: 3
+  num_layers: 1
+  out_channels: 32
+  type: NeoGNN
+num_threads: 11
+optimizer:
+  lr: 0.01
+  type: adam
+  weight_decay: 0.0005
+out_dir: results/neognn-neognn-pubmed
+params: 194845
+print: file
+run:
+  multiple_splits: None
+  num_threads: 11
+  seed: 0
+run_dir: results/neognn-neognn-pubmed/pubmed_rundmluuti4_NeoGNN_hyperswqqtvzg
+run_id: 0
+seed: 0
+train:
+  auto_resume: false
+  batch_size: 512
+  device: 0
+  epochs: 300
+  eval_period: 1
+  final_eval: false
+  finetune: false
+  gnn_batch_size: 4096
+  mode: custom
+wandb:
+  name_tag: pubmed_rundmluuti4_NeoGNN_hyperswqqtvzg
+  project: gtblueprint
+  use: true

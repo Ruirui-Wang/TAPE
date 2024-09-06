@@ -1,0 +1,66 @@
+cfg_dest: buddy.yaml
+data:
+  device: cpu
+  include_negatives: true
+  method: w2v
+  name: pwc_small
+  num_features: 1433
+  split_index:
+  - 0.8
+  - 0.15
+  - 0.05
+  split_labels: true
+  test_pct: 0.05
+  undirected: true
+  val_pct: 0.15
+device: cpu
+metric_best: acc
+model:
+  add_normed_features: false
+  device: cuda:0
+  feature_dropout: 0.1
+  feature_prop: gcn
+  floor_sf: 0
+  hidden_channels: 128
+  hll_p: 8
+  in_channels: 1433
+  label_dropout: 0.5
+  max_hash_hops: 3
+  minhash_num_perm: 128
+  num_layers: 2
+  out_channels: 32
+  propagate_embeddings: false
+  sign_dropout: 0.1
+  sign_k: 0
+  type: BUDDY
+  use_RA: false
+  use_feature: true
+  use_zero_one: 0
+num_threads: 11
+optimizer:
+  lr: 0.001
+  type: adam
+  weight_decay: 0.0005
+out_dir: results/buddy-buddy-pwc_small
+params: 33696
+print: file
+run:
+  multiple_splits: None
+  num_threads: 11
+  seed: 0
+run_dir: results/buddy-buddy-pwc_small/pwc_small_runzdry013k_BUDDY_hyperrn329qzk
+run_id: 0
+seed: 0
+train:
+  auto_resume: false
+  batch_size: 1024
+  device: 0
+  epochs: 50
+  eval_period: 1
+  final_eval: false
+  finetune: false
+  mode: custom
+wandb:
+  name_tag: pwc_small_runzdry013k_BUDDY_hyperrn329qzk
+  project: gtblueprint
+  use: true

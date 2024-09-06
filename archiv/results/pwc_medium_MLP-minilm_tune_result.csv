@@ -1,0 +1,11 @@
+Metric,Hits@1,Hits@3,Hits@10,Hits@20,Hits@50,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit20,mrr_hit50,mrr_hit100,AUC,AP,ACC,base_lr,batch_size
+pwc_medium_run<built-in function id>_MLP-minilm_hyper5m2wacd6,1.49,4.21,13.71,22.68,38.95,51.31,6.24,1.49,4.21,13.71,22.68,38.95,51.31,95.42,95.46,88.65,0.01,64
+pwc_medium_run<built-in function id>_MLP-minilm_hyper2yuklyuj,1.49,4.21,13.71,22.68,38.95,50.5,6.24,1.49,4.21,13.71,22.68,38.95,50.5,95.5,95.52,88.67,0.01,128
+pwc_medium_run<built-in function id>_MLP-minilm_hyper5gkftdg3,1.49,4.21,13.71,24.14,38.95,52.14,6.24,1.49,4.21,13.71,24.14,38.95,52.14,95.53,95.54,88.92,0.01,256
+pwc_medium_run<built-in function id>_MLP-minilm_hyper9llq737h,1.49,4.21,13.71,24.14,38.95,52.14,6.24,1.49,4.21,13.71,24.14,38.95,52.14,95.53,95.54,88.92,0.001,64
+pwc_medium_run<built-in function id>_MLP-minilm_hyper44pyge2e,0.65,4.21,13.71,24.14,38.95,52.14,6.24,0.65,4.21,13.71,24.14,38.95,52.14,95.53,95.54,88.92,0.001,128
+pwc_medium_run<built-in function id>_MLP-minilm_hyper4rtmlsij,0.65,4.21,13.71,24.14,38.95,52.14,6.24,0.65,4.21,13.71,24.14,38.95,52.14,95.53,95.54,88.92,0.001,256
+pwc_medium_run<built-in function id>_MLP-minilm_hyper8y8bk8am,1.21,4.21,13.71,24.14,38.95,52.14,6.34,1.21,4.21,13.71,24.14,38.95,52.14,95.53,95.54,88.92,0.0001,64
+pwc_medium_run<built-in function id>_MLP-minilm_hyperujril6nx,1.24,4.21,13.71,24.14,38.95,52.14,6.16,1.24,4.21,13.71,24.14,38.95,52.14,95.53,95.54,88.92,0.0001,128
+pwc_medium_run<built-in function id>_MLP-minilm_hyper852jytqd,1.18,4.21,13.71,24.14,38.95,52.14,6.28,1.18,4.21,13.71,24.14,38.95,52.14,95.53,95.54,88.92,0.0001,256
+Best,1.49,4.21,13.71,24.14,38.95,52.14,6.34,1.49,4.21,13.71,24.14,38.95,52.14,95.53,95.54,88.92,0.01,256

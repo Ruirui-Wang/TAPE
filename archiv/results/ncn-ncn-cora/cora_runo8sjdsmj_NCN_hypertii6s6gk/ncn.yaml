@@ -1,0 +1,71 @@
+cfg_dest: ncn.yaml
+data:
+  device: cpu
+  include_negatives: true
+  max_x: -1
+  name: cora
+  num_features: 1433
+  split_index:
+  - 0.8
+  - 0.15
+  - 0.05
+  split_labels: true
+  test_pct: 0.05
+  undirected: true
+  use_valedges_as_input: true
+  val_pct: 0.15
+device: cpu
+metric_best: acc
+model:
+  device: cpu
+  gnndp: 0.5
+  gnnedp: 0.0
+  hidden_channels: 256
+  hiddim: 64
+  in_channels: 1433
+  jk: true
+  ln: true
+  lnnn: true
+  model: puregcn
+  mplayers: 1
+  nnlayers: 3
+  out_channels: 32
+  predp: 0.05
+  preedp: 0.4
+  proboffset: 3.0
+  probscale: 5.0
+  pt: 0.05
+  res: false
+  tdp: 0.0
+  type: NCN
+  xdp: 0.0
+num_threads: 11
+optimizer:
+  gnnlr: 0.0001
+  prelr: 0.0001
+  type: adam
+  weight_decay: 0.0005
+out_dir: results/ncn-ncn-cora
+params: 262209
+print: file
+run:
+  multiple_splits: None
+  num_threads: 11
+  seed: 0
+run_dir: results/ncn-ncn-cora/cora_runo8sjdsmj_NCN_hypertii6s6gk
+run_id: 0
+seed: 0
+train:
+  auto_resume: false
+  batch_size: 2048
+  device: 0
+  dynamic_train: false
+  epochs: 40
+  eval_period: 1
+  final_eval: false
+  finetune: false
+  mode: custom
+wandb:
+  name_tag: cora_runo8sjdsmj_NCN_hypertii6s6gk
+  project: gtblueprint
+  use: true
