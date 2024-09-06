@@ -1,4 +1,6 @@
 import os, sys
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
 from typing import Dict
 
 from torch_sparse import SparseTensor
@@ -17,9 +19,10 @@ from graphgps.utility.utils import set_cfg, get_git_repo_root_path, custom_set_r
 
 from data_utils.load import load_data_lp, load_graph_lp
 from graphgps.utility.utils import save_run_results_to_csv
+from yacs.config import CfgNode as CN
 
 from transformers import AutoTokenizer, AutoModel, TrainingArguments, Trainer, IntervalStrategy
-from model import BertClassifier, BertClaInfModel,NCNClaInfModel,NCNClassifier
+from model import BertClassifier, BertClaInfModel,NCNClaInfModel,NCNClassifier,GCNClassifier,GCNClaInfModel
 from finetune_dataset import LinkPredictionDataset
 from utils import init_path, time_logger
 from ogb.linkproppred import Evaluator
@@ -28,7 +31,9 @@ from heuristic.eval import get_metric_score
 from graphgps.utility.utils import config_device, Logger
 from torch.utils.tensorboard import SummaryWriter
 from graph_embed.tune_utils import mvari_str2csv, save_parmet_tune
-
+from graphgps.score.custom_score import mlp_score, InnerProduct
+from graphgps.network.heart_gnn import GAT_Variant, GAE_forall, GCN_Variant, \
+                                SAGE_Variant, GIN_Variant, DGCNN
 writer = SummaryWriter()
 
 # todo
@@ -38,7 +43,7 @@ def compute_metrics(p):
     pred = np.argmax(pred, axis=1)
     accuracy = accuracy_score(y_true=labels, y_pred=pred)
     return {"accuracy": accuracy}
-def ncn_dataset(data, splits):
+def gcn_dataset(data, splits):
     edge_index = data.edge_index
     data.num_nodes = data.x.shape[0]
     data.edge_weight = None
@@ -51,6 +56,61 @@ def ncn_dataset(data, splits):
     data.full_adj_t = SparseTensor.from_edge_index(full_edge_index, sparse_sizes=(data.num_nodes, data.num_nodes)).coalesce()
     data.full_adj_t = data.full_adj_t.to_symmetric()
     return data
+
+
+def create_GAE_model(cfg_model: CN,
+                     cfg_score: CN,
+                     model_name: str):
+    if model_name in {'GAT', 'VGAE', 'GAE', 'GraphSage'}:
+        raise NotImplementedError('Current model does not exist')
+        # model = create_model(cfg_model)
+
+    elif model_name == 'GAT_Variant':
+        encoder = GAT_Variant(cfg_model.in_channels,
+                              cfg_model.hidden_channels,
+                              cfg_model.out_channels,
+                              cfg_model.num_layers,
+                              cfg_model.dropout,
+                              cfg_model.heads,
+                              )
+    elif model_name == 'GCN_Variant':
+        encoder = GCN_Variant(cfg_model.in_channels,
+                              cfg_model.hidden_channels,
+                              cfg_model.out_channels,
+                              cfg_model.num_layers,
+                              cfg_model.dropout,
+                              )
+    elif model_name == 'SAGE_Variant':
+        encoder = SAGE_Variant(cfg_model.in_channels,
+                               cfg_model.hidden_channels,
+                               cfg_model.out_channels,
+                               cfg_model.num_layers,
+                               cfg_model.dropout,
+                               )
+    elif model_name == 'GIN_Variant':
+        encoder = GIN_Variant(cfg_model.in_channels,
+                              cfg_model.hidden_channels,
+                              cfg_model.out_channels,
+                              cfg_model.num_layers,
+                              cfg_model.dropout,
+                              cfg_model.mlp_layer
+                              )
+
+    if cfg_score.product == 'dot':
+        decoder = mlp_score(cfg_model.out_channels,
+                            cfg_score.score_hidden_channels,
+                            cfg_score.score_out_channels,
+                            cfg_score.score_num_layers,
+                            cfg_score.score_dropout,
+                            cfg_score.product)
+    elif cfg_score.product == 'inner':
+        decoder = InnerProduct()
+
+    else:
+        # Without this else I got: UnboundLocalError: local variable 'model' referenced before assignment
+        raise ValueError('Current model does not exist')
+
+    return GAE_forall(encoder=encoder, decoder=decoder)
 
 class LMTrainer():
     def __init__(self, cfg):
@@ -81,7 +141,7 @@ class LMTrainer():
         splits = random_sampling(splits, args.downsampling)
 
         self.data = data.to(self.device)
-        self.data = ncn_dataset(self.data, splits)
+        self.data = gcn_dataset(self.data, splits)
 
         self.num_nodes = data.num_nodes
         self.n_labels = 2
@@ -129,19 +189,15 @@ class LMTrainer():
                 break
             param.requires_grad = False
         if self.decoder.model.type == 'MLP':
-            self.model = BertClassifier(bert_model,
-                                    cfg,
-                                    feat_shrink=self.feat_shrink).to(self.device)
+            self.model = BertClassifier(bert_model,cfg,feat_shrink=self.feat_shrink).to(self.device)
         elif self.decoder.model.type == 'NCN' or self.decoder.model.type == 'NCNC':
             self.model = NCNClassifier(bert_model, cfg, self.data, self.data.edge_index).to(self.device)
-
-        # prev_ckpt = f'prt_lm/{self.dataset_name}/{self.model_name}.ckpt'
-        # if self.use_gpt_str and os.path.exists(prev_ckpt):
-        #     print("Initialize using previous ckpt...")
-        #     self.model.load_state_dict(torch.load(prev_ckpt))
-
-        self.model.config.dropout = self.dropout
-        self.model.config.attention_dropout = self.att_dropout
+        elif self.decoder.model.type == 'GCN_Variant':
+            cfg_model = eval(f'cfg.decoder.model.{args.model}')
+            cfg_score = eval(f'cfg.decoder.score.{args.model}')
+            cfg_model.in_channels = hidden_size
+            self.model = GCNClassifier(bert_model, cfg, self.data, self.data.edge_index,
+                                       create_GAE_model(cfg_model, cfg_score, args.model)).to(self.device)
         self.evaluator_hit = Evaluator(name='ogbl-collab')
         self.evaluator_mrr = Evaluator(name='ogbl-citation2')
         self.tensorboard_writer = writer
@@ -150,7 +206,7 @@ class LMTrainer():
 
         self.trainable_params = sum(p.numel()
                                for p in self.model.parameters() if p.requires_grad)
-        self.name_tag = cfg.model.type + cfg.data.name
+        self.name_tag = cfg.model.type + '-' + cfg.data.name + '-' + cfg.decoder.model.type
         self.FILE_PATH = f'{get_git_repo_root_path()}/'
 
     @time_logger
@@ -179,10 +235,10 @@ class LMTrainer():
             warmup_steps=warmup_steps,
             num_train_epochs=self.epochs,
             dataloader_num_workers=1,
-            fp16=False,
+            fp16=True,
             dataloader_drop_last=True,
             max_grad_norm=10.0,
-            remove_unused_columns = False if self.decoder.model.type == 'NCN'or self.decoder.model.type == 'NCNC' else True
+            remove_unused_columns = False if self.decoder.model.type != 'MLP' else True
         )
         self.trainer = Trainer(
             model=self.model,
@@ -216,6 +272,9 @@ class LMTrainer():
                 self.model, emb, pred, feat_shrink=self.feat_shrink)
         elif self.decoder.model.type == 'NCN' or self.decoder.model.type == 'NCNC':
             inf_model = NCNClaInfModel(
+                self.model, emb, pred, self.data, self.data.edge_index, feat_shrink=self.feat_shrink)
+        elif self.decoder.model.type == 'GCN_Variant':
+            inf_model = GCNClaInfModel(
                 self.model, emb, pred, self.data, self.data.edge_index, feat_shrink=self.feat_shrink)
         inf_model.eval()
         inference_args = TrainingArguments(
@@ -274,6 +333,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='See graphgym/config.py for remaining options.')
     parser.add_argument('--decoder',type=str, required=False)
+    parser.add_argument('--model', type=str, required=False)
     return parser.parse_args()
 
 
