@@ -1,4 +1,6 @@
 import os, sys
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
 from typing import Dict
 
 from torch_sparse import SparseTensor
