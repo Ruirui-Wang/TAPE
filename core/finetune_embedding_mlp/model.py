@@ -1,4 +1,6 @@
 import os
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
 import sys
 import torch.nn.functional as F
 
@@ -186,15 +188,14 @@ class NCNClassifier(PreTrainedModel):
         adj = SparseTensor.from_edge_index(tei, sparse_sizes=(self.data.num_nodes, self.data.num_nodes))
         adjmask[edge_pos] = 1
         adj = adj.to_symmetric()
-        with torch.no_grad():
-            outputs_1 = self.bert_encoder(input_ids=input_1,
-                                        attention_mask=attention_mask_1,
-                                        return_dict=return_dict,
-                                        output_hidden_states=True)
-            outputs_2 = self.bert_encoder(input_ids=input_2,
-                                        attention_mask=attention_mask_2,
-                                        return_dict=return_dict,
-                                        output_hidden_states=True)
+        outputs_1 = self.bert_encoder(input_ids=input_1,
+                                    attention_mask=attention_mask_1,
+                                    return_dict=return_dict,
+                                    output_hidden_states=True)
+        outputs_2 = self.bert_encoder(input_ids=input_2,
+                                    attention_mask=attention_mask_2,
+                                    return_dict=return_dict,
+                                    output_hidden_states=True)
         emb_1 = self.dropout(outputs_1['hidden_states'][-1])
         emb_2 = self.dropout(outputs_2['hidden_states'][-1])
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
@@ -326,11 +327,12 @@ class GCNClassifier(PreTrainedModel):
         emb_2 = self.dropout(outputs_2['hidden_states'][-1])
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
         cls_token_emb_2 = emb_2.permute(1, 0, 2)[0]
+        batch_edge_index = batch_edge_index.to(cls_token_emb_1.device)
         self.data.x = self.data.x.to(cls_token_emb_1.device)
         node_id = node_id.to(cls_token_emb_1.device)
         self.data.x[node_id[:,0]] = cls_token_emb_1
         self.data.x[node_id[:,1]] = cls_token_emb_2
-        h = self.model.encoder(self.data.x, batch_edge_index)
+        h = self.model.encoder(self.data.x, batch_edge_index).detach()
         loss = self.model.recon_loss(h, edge_pos)
         return TokenClassifierOutput(loss=loss, logits=h)
 
@@ -388,10 +390,11 @@ class GCNClaInfModel(PreTrainedModel):
         cls_token_emb_2 = emb_2.permute(1, 0, 2)[0]
         self.data.x = self.data.x.to(cls_token_emb_1.device)
         adj = adj.to(cls_token_emb_1.device)
+        batch_edge_index = batch_edge_index.to(cls_token_emb_1.device)
         node_id = node_id.to(cls_token_emb_1.device)
         self.data.x[node_id[:, 0]] = cls_token_emb_1
         self.data.x[node_id[:, 1]] = cls_token_emb_2
-        h = self.model.encoder(self.data.x, batch_edge_index)
+        h = self.model.encoder(self.data.x, batch_edge_index).detach()
         loss = self.model.recon_loss(h, edge_pos)
         pred = self.model.decoder(h[node_id.T[0]], h[node_id.T[1]])
         return TokenClassifierOutput(loss=loss, logits=pred)
