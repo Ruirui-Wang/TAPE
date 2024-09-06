@@ -1,9 +1,0 @@
-Metric,Hits@1,Hits@3,Hits@10,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit100,AUC,AP
-pairwise_pred_dot_<built-in function id>_pubmed_,0.0,0.0018,0.005,0.0429,0.0039,0.0,0.0018,0.005,0.0429,0.4912,0.4958
-pairwise_pred_dot_<built-in function id>_pubmed_,0.0,0.0,0.0054,0.0438,0.003,0.0,0.0,0.0054,0.0438,0.4975,0.4962
-pairwise_pred_dot_<built-in function id>_pubmed_,0.0005,0.0023,0.0045,0.0424,0.0035,0.0005,0.0023,0.0045,0.0424,0.4896,0.4949
-pairwise_pred_dot_<built-in function id>_pubmed_,0.0,0.0023,0.0036,0.0442,0.0035,0.0,0.0023,0.0036,0.0442,0.5069,0.501
-pairwise_pred_dot_<built-in function id>_pubmed_,0.0027,0.0027,0.0117,0.0483,0.0062,0.0027,0.0027,0.0117,0.0483,0.4862,0.5014
-pairwise_pred_dot_<built-in function id>_pubmed_,0.0009,0.0018,0.005,0.0492,0.0043,0.0009,0.0018,0.005,0.0492,0.5017,0.5029
-pairwise_pred_dot_<built-in function id>_pubmed_,0.0,0.0,0.005,0.0483,0.0031,0.0,0.0,0.005,0.0483,0.4954,0.4983
-Best,0.0027,0.0027,0.0117,0.0492,0.0062,0.0027,0.0027,0.0117,0.0492,0.5069,0.5029

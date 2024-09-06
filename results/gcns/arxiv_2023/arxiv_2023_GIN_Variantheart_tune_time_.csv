@@ -1,4 +1,0 @@
-Metric,Hits@1,Hits@3,Hits@10,Hits@20,Hits@50,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit20,mrr_hit50,mrr_hit100,AUC,AP,ACC,out_channels,hidden_channels,num_layers,base_lr,mlp_layer,score_num_layers_predictor,score_gin_mlp_layer,score_hidden_channels,score_out_channels,score_num_layers,score_dropout,product,epochs,train_time,test_time,params
-arxiv_2023_runom37lc0t_GIN_Variant_hyperz4g3p758,0.0,30.12,43.91,52.08,65.11,74.19,17.14,0.0,30.12,43.91,52.08,65.11,74.19,91.54,93.29,85.12,16,16,1,0.015,1,1,2,64,1,1,0.1,inner,1000,4.166230916976929,4.216331005096436,4816
-arxiv_2023_runom37lc0t_GIN_Variant_hyperlahd32vw,0.0,30.22,40.62,53.45,65.01,74.7,18.59,0.0,32.71,40.62,53.45,65.01,74.7,96.55,96.15,79.84,16,16,1,0.015,1,1,2,64,1,1,0.1,dot,1000,4.6329450607299805,4.895028352737427,4833
-Best,0.0,30.22,43.91,53.45,65.11,74.7,18.59,0.0,32.71,43.91,53.45,65.11,74.7,96.55,96.15,85.12,16,16,1,0.015,1,1,2,64,1,1,0.1,inner,1000,4.6329450607299805,4.895028352737427,4833

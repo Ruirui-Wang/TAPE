@@ -1,4 +1,0 @@
-Metric,node_sim_acc,Hits@1,Hits@3,Hits@10,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit100,AUC,AP
-arxiv_2023_fyfoedln_nonlinear_compat,0.9558186911128088,0.0,0.0,0.0,0.0,0.0076,0.0,0.0,0.0,0.0,0.9558,0.9274
-arxiv_2023_bpwl4yci_nonlinear_compat,0.9508530685001273,0.0,0.0,0.0,0.0,0.0067,0.0,0.0,0.0,0.0,0.9509,0.9193
-Best,0.9558186911128088,0.0,0.0,0.0,0.0,0.0076,0.0,0.0,0.0,0.0,0.9558,0.9274

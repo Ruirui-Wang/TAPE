@@ -1,3 +1,0 @@
-Metric,Hits@1,Hits@3,Hits@10,Hits@20,Hits@50,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit20,mrr_hit50,mrr_hit100,AUC,AP,ACC,out_channels,hidden_channels,num_layers,base_lr,mlp_layer,score_num_layers_predictor,score_gin_mlp_layer,score_hidden_channels,score_out_channels,score_num_layers,score_dropout,product,epochs,train_time,test_time,params
-pubmed_run8keqrm62_GIN_Variant_hyperdan81njv,12.75,12.7,27.35,36.53,63.61,81.63,16.9,12.75,12.7,27.35,36.53,63.61,81.63,98.39,98.1,78.35,16,16,1,0.015,1,1,2,64,1,1,0.1,inner,1000,4.3464882373809814,4.580536127090454,8016
-Best,12.75,12.7,27.35,36.53,63.61,81.63,16.9,12.75,12.7,27.35,36.53,63.61,81.63,98.39,98.1,78.35,16,16,1,0.015,1,1,2,64,1,1,0.1,inner,1000,4.3464882373809814,4.580536127090454,8016

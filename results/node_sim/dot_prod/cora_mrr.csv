@@ -1,6 +1,0 @@
-Metric,Hits@1,Hits@3,Hits@10,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit100,AUC,AP
-pairwise_pred_dot_<built-in function id>_cora_,0.076,0.1863,0.3574,0.73,0.1788,0.076,0.1863,0.3574,0.73,0.8068,0.7935
-pairwise_pred_dot_<built-in function id>_cora_,0.1369,0.2053,0.3422,0.7452,0.2224,0.1369,0.2053,0.3422,0.7452,0.8024,0.7915
-pairwise_pred_dot_<built-in function id>_cora_,0.0456,0.1065,0.2091,0.6692,0.132,0.0456,0.1065,0.3536,0.6692,0.7526,0.7451
-pairwise_pred_dot_<built-in function id>_cora_,0.0798,0.1179,0.3384,0.7452,0.1777,0.0798,0.2015,0.3384,0.7452,0.8088,0.796
-Best,0.1369,0.2053,0.3574,0.7452,0.2224,0.1369,0.2053,0.3574,0.7452,0.8088,0.796
