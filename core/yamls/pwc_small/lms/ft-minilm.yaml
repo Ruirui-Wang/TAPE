@@ -6,7 +6,7 @@ lm:
     name: sentence-transformers/all-MiniLM-L6-v2
   train:
     att_dropout: 0.1
-    batch_size: 3
+    batch_size: 9
     dropout: 0.3
     epochs: 20
     eval_patience: 1
