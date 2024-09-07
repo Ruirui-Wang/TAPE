@@ -34,12 +34,15 @@ from graph_embed.tune_utils import mvari_str2csv, save_parmet_tune
 from graphgps.score.custom_score import mlp_score, InnerProduct
 from graphgps.network.heart_gnn import GAT_Variant, GAE_forall, GCN_Variant, \
                                 SAGE_Variant, GIN_Variant, DGCNN
+from transformers import AutoTokenizer, AutoModel, BitsAndBytesConfig
+import torch
 writer = SummaryWriter()
 from peft import LoraConfig, get_peft_model
 import bitsandbytes as bnb
 
 from peft import LoraConfig, get_peft_model
-# todo
+
+
 def compute_metrics(p):
     from sklearn.metrics import accuracy_score
     pred, labels = p
@@ -71,7 +74,7 @@ def apply_lora(model):
         # task_type="SEQ_CLS"
     )
     return get_peft_model(model, lora_config)
-        
+
         
 def create_GAE_model(cfg_model: CN,
                      cfg_score: CN,
@@ -181,10 +184,18 @@ class LMTrainer():
             [splits['test'].pos_edge_label_index, splits['test'].neg_edge_label_index], dim=1), torch.cat(
             [splits['test'].pos_edge_label, splits['test'].neg_edge_label], dim=0))
 
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_use_double_quant=True,  
+            bnb_4bit_quant_type="nf4",      
+            bnb_4bit_compute_dtype=torch.float16 
+        )
 
-        # Define pretrained tokenizer and model
-        bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
-        bert_model = apply_lora(bert_model)
+        bert_model = AutoModel.from_pretrained(self.model_name, 
+                        # attn_implementation="eager"
+                        quantization_config=quantization_config, 
+            )
+
         bert_model.gradient_checkpointing_enable()
         hidden_size = bert_model.config.hidden_size
         current_size = self.data.x.size(1)

@@ -91,7 +91,6 @@ gcns/results
 core/gcns/runs
 core/batch
 
-/results
 
 .env
 /core/embedding_mlp/models/
