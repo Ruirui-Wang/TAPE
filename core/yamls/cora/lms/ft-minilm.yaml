@@ -12,7 +12,7 @@ lm:
     epochs: 20
     eval_patience: 100000000000
     grad_acc_steps: 4
-    lr: 0.0001
+    lr: 0.0005
     use_gpt: False
     warmup_epochs: 0.6
     weight_decay: 0.0
