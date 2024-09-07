@@ -1,6 +1,3 @@
-# adopted from lm_trainer.py 
-# this script proposes a trainer for the models tuned by LoRA 
-
 import os, sys
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
@@ -37,11 +34,8 @@ from graph_embed.tune_utils import mvari_str2csv, save_parmet_tune
 from graphgps.score.custom_score import mlp_score, InnerProduct
 from graphgps.network.heart_gnn import GAT_Variant, GAE_forall, GCN_Variant, \
                                 SAGE_Variant, GIN_Variant, DGCNN
-
-from peft import LoraConfig, get_peft_model
-
-
 writer = SummaryWriter()
+from peft import LoraConfig, get_peft_model
 
 # todo
 def compute_metrics(p):
@@ -65,6 +59,18 @@ def gcn_dataset(data, splits):
     return data
 
 
+def apply_lora(model):
+    lora_config = LoraConfig(
+        r=16,
+        lora_alpha=32,
+        target_modules=["query", "value"],  # Modify attention layers
+        lora_dropout=0.1,
+        bias="none",
+        # task_type="SEQ_CLS"
+    )
+    return get_peft_model(model, lora_config)
+        
+        
 def create_GAE_model(cfg_model: CN,
                      cfg_score: CN,
                      model_name: str):
@@ -176,6 +182,8 @@ class LMTrainer():
 
         # Define pretrained tokenizer and model
         bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
+        bert_model = apply_lora(bert_model)
+        bert_model.gradient_checkpointing_enable()
         hidden_size = bert_model.config.hidden_size
         current_size = self.data.x.size(1)
 
@@ -185,7 +193,6 @@ class LMTrainer():
         elif current_size > hidden_size:
             self.data.x = self.data.x[:, :hidden_size]
         for name, param in bert_model.named_parameters():
-            print(name)
             if 'encoder.layer.5' in name and 'MiniLM' in cfg.lm.model.name:
                 break
             if 'layers.31' in name and 'Llama' in cfg.lm.model.name:
@@ -195,10 +202,13 @@ class LMTrainer():
             if 'encoder.layer.23' in name and 'e5-large' in cfg.lm.model.name:
                 break
             param.requires_grad = False
+            print(f'{name} is frozen.')
+            
         if self.decoder.model.type == 'MLP':
             self.model = BertClassifier(bert_model,cfg,feat_shrink=self.feat_shrink).to(self.device)
         elif self.decoder.model.type == 'NCN' or self.decoder.model.type == 'NCNC':
             self.model = NCNClassifier(bert_model, cfg, self.data, self.data.edge_index).to(self.device)
+            
         elif self.decoder.model.type == 'GCN_Variant':
             cfg_model = eval(f'cfg.decoder.model.{args.model}')
             cfg_score = eval(f'cfg.decoder.score.{args.model}')
@@ -211,12 +221,14 @@ class LMTrainer():
         self.loggers = create_logger(args.repeat)
         self.print_logger = set_printing(cfg)
 
+        for n, p in self.model.named_parameters():
+            if p.requires_grad:
+                print(f'{n} is trainable.')
         self.trainable_params = sum(p.numel()
                                for p in self.model.parameters() if p.requires_grad)
+        print(f'Trainable params: {self.trainable_params}') 
         self.name_tag = cfg.model.type + '-' + cfg.data.name + '-' + cfg.decoder.model.type
         self.FILE_PATH = f'{get_git_repo_root_path()}/'
-        
-        
 
     @time_logger
     def train(self):
@@ -225,17 +237,6 @@ class LMTrainer():
         train_steps = self.num_nodes // eq_batch_size + 1
         eval_steps = self.eval_patience // eq_batch_size
         warmup_steps = int(self.warmup_epochs * train_steps)
-
-        # Apply LoRA configuration
-        lora_config = LoraConfig(
-            r=16,
-            lora_alpha=32,
-            target_modules=["query", "value"],
-            lora_dropout=0.1,
-            bias="none",
-        )
-        
-        self.model = get_peft_model(self.model, lora_config)
 
         args = TrainingArguments(
             output_dir=self.output_dir,
@@ -254,7 +255,7 @@ class LMTrainer():
             warmup_steps=warmup_steps,
             num_train_epochs=self.epochs,
             dataloader_num_workers=1,
-            fp16=False,
+            fp16=True,
             dataloader_drop_last=True,
             max_grad_norm=10.0,
             remove_unused_columns = False if self.decoder.model.type != 'MLP' else True
@@ -265,7 +266,6 @@ class LMTrainer():
             train_dataset=self.train_dataset,
             eval_dataset=self.val_dataset,
             compute_metrics=compute_metrics,
-
             # callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
         )
 
@@ -380,6 +380,7 @@ if __name__ == '__main__':
     loggers = create_logger(args.repeat)
     start_ft = time.time()
     for run_id in range(args.repeat):
+        torch.cuda.empty_cache()
         seed = run_id + args.start_seed
         custom_set_run_dir(cfg, run_id)
         set_printing(cfg)
