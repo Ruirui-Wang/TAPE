@@ -1,0 +1,55 @@
+out_dir: results
+metric_best: acc
+cfg_dest: gemma.yaml
+print: file
+seed: 0
+accelerator: auto
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+
+wandb:
+  use: True
+  project: gtblueprint
+  name_tag: gemma-cora-origin
+
+train:
+  mode: custom
+  batch_size: 64
+  eval_period: 1
+  epochs: 100
+  device: 0
+  auto_resume: False
+  final_eval: False
+  finetune: False
+
+embedder:
+  type: gemma
+
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+  device: 0
+  split_index: [0.8, 0.15, 0.05]
+
+
+model:
+  device: 0
+  type: MLP-gemma
+  hidden_channels: 128 #
+  num_layers: 3 #
+  dropout: 0.1
+
+num_threads: 11
+
+optimizer:
+  type: adam
+  base_lr: 0.0001
+  weight_decay: 0.0005
