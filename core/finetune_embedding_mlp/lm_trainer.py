@@ -169,6 +169,7 @@ class LMTrainer():
 
         # Define pretrained tokenizer and model
         bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
+        bert_model.gradient_checkpointing_enable()
         hidden_size = bert_model.config.hidden_size
         current_size = self.data.x.size(1)
 
@@ -193,7 +194,7 @@ class LMTrainer():
             self.model = BertClassifier(bert_model,cfg,feat_shrink=self.feat_shrink).to(self.device)
         elif self.decoder.model.type == 'NCN' or self.decoder.model.type == 'NCNC':
             self.model = NCNClassifier(bert_model, cfg, self.data, self.data.edge_index).to(self.device)
-            self.model.gradient_checkpointing_enable()
+            
         elif self.decoder.model.type == 'GCN_Variant':
             cfg_model = eval(f'cfg.decoder.model.{args.model}')
             cfg_score = eval(f'cfg.decoder.score.{args.model}')

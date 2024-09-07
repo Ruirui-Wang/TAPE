@@ -233,8 +233,8 @@ class LMTrainer():
             target_modules=["query", "value"],
             lora_dropout=0.1,
             bias="none",
-            task_type="SEQ_CLS"
         )
+        
         self.model = get_peft_model(self.model, lora_config)
 
         args = TrainingArguments(
@@ -254,7 +254,7 @@ class LMTrainer():
             warmup_steps=warmup_steps,
             num_train_epochs=self.epochs,
             dataloader_num_workers=1,
-            fp16=True,
+            fp16=False,
             dataloader_drop_last=True,
             max_grad_norm=10.0,
             remove_unused_columns = False if self.decoder.model.type != 'MLP' else True
@@ -337,7 +337,7 @@ def parse_args() -> argparse.Namespace:
     r"""Parses the command line arguments."""
     parser = argparse.ArgumentParser(description='GraphGym')
     parser.add_argument('--cfg', dest='cfg_file', type=str, required=False,
-                        default='core/yamls/cora/lms/ft-deberta.yaml',
+                        default='core/yamls/cora/lms/ft-minilm.yaml',
                         help='The configuration file path.')
     parser.add_argument('--repeat', type=int, default=5,
                         help='The number of repeated jobs.')
