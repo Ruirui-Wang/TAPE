@@ -119,8 +119,7 @@ class BertClaInfModel(PreTrainedModel):
             cls_token_emb_2 = self.feat_shrink_layer(cls_token_emb_2)
 
         logits = self.bert_classifier.classifier(cls_token_emb_1, cls_token_emb_2).squeeze(dim=1)
-        if torch.cuda.is_available():
-            print(f"Memory allocated: {torch.cuda.memory_allocated() / 1024 ** 2:.2f} MB")
+
         self.emb = torch.stack((cls_token_emb_1, cls_token_emb_2), dim=1).cpu().numpy().astype(np.float16)
         self.pred = logits.cpu().numpy().astype(np.float16)
 
@@ -191,15 +190,14 @@ class NCNClassifier(PreTrainedModel):
         adj = SparseTensor.from_edge_index(tei, sparse_sizes=(self.data.num_nodes, self.data.num_nodes))
         adjmask[edge_pos] = 1
         adj = adj.to_symmetric()
-        with torch.no_grad():
-            outputs_1 = self.bert_encoder(input_ids=input_1,
-                                          attention_mask=attention_mask_1,
-                                          return_dict=return_dict,
-                                          output_hidden_states=True)
-            outputs_2 = self.bert_encoder(input_ids=input_2,
-                                          attention_mask=attention_mask_2,
-                                          return_dict=return_dict,
-                                          output_hidden_states=True)
+        outputs_1 = self.bert_encoder(input_ids=input_1,
+                                        attention_mask=attention_mask_1,
+                                        return_dict=return_dict,
+                                        output_hidden_states=True)
+        outputs_2 = self.bert_encoder(input_ids=input_2,
+                                        attention_mask=attention_mask_2,
+                                        return_dict=return_dict,
+                                        output_hidden_states=True)
         emb_1 = self.dropout(outputs_1['hidden_states'][-1])
         emb_2 = self.dropout(outputs_2['hidden_states'][-1])
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
