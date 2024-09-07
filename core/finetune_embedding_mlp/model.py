@@ -191,16 +191,15 @@ class NCNClassifier(PreTrainedModel):
         adj = SparseTensor.from_edge_index(tei, sparse_sizes=(self.data.num_nodes, self.data.num_nodes))
         adjmask[edge_pos] = 1
         adj = adj.to_symmetric()
-
-        outputs_1 = self.bert_encoder(input_ids=input_1,
-                                        attention_mask=attention_mask_1,
-                                        return_dict=return_dict,
-                                        output_hidden_states=True)
-        outputs_2 = self.bert_encoder(input_ids=input_2,
-                                        attention_mask=attention_mask_2,
-                                        return_dict=return_dict,
-                                        output_hidden_states=True)
-        
+        with torch.no_grad():
+            outputs_1 = self.bert_encoder(input_ids=input_1,
+                                          attention_mask=attention_mask_1,
+                                          return_dict=return_dict,
+                                          output_hidden_states=True)
+            outputs_2 = self.bert_encoder(input_ids=input_2,
+                                          attention_mask=attention_mask_2,
+                                          return_dict=return_dict,
+                                          output_hidden_states=True)
         emb_1 = self.dropout(outputs_1['hidden_states'][-1])
         emb_2 = self.dropout(outputs_2['hidden_states'][-1])
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
@@ -405,4 +404,3 @@ class GCNClaInfModel(PreTrainedModel):
         loss = self.bert_classifier.model.recon_loss(h, edge_pos, edge_neg)
         pred = self.bert_classifier.model.decoder(h[node_id.T[0]], h[node_id.T[1]])
         return TokenClassifierOutput(loss=loss, logits=pred)
-

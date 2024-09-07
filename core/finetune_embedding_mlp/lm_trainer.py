@@ -169,8 +169,6 @@ class LMTrainer():
 
         # Define pretrained tokenizer and model
         bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
-        # bert_model.gradient_checkpointing_enable()
-        
         hidden_size = bert_model.config.hidden_size
         current_size = self.data.x.size(1)
 
@@ -180,6 +178,7 @@ class LMTrainer():
         elif current_size > hidden_size:
             self.data.x = self.data.x[:, :hidden_size]
         for name, param in bert_model.named_parameters():
+            print(name)
             if 'encoder.layer.5' in name and 'MiniLM' in cfg.lm.model.name:
                 break
             if 'layers.31' in name and 'Llama' in cfg.lm.model.name:
@@ -189,8 +188,6 @@ class LMTrainer():
             if 'encoder.layer.23' in name and 'e5-large' in cfg.lm.model.name:
                 break
             param.requires_grad = False
-            print(f'{name} is frozen.')
-            
         if self.decoder.model.type == 'MLP':
             self.model = BertClassifier(bert_model,cfg,feat_shrink=self.feat_shrink).to(self.device)
         elif self.decoder.model.type == 'NCN' or self.decoder.model.type == 'NCNC':
@@ -207,14 +204,8 @@ class LMTrainer():
         self.loggers = create_logger(args.repeat)
         self.print_logger = set_printing(cfg)
 
-        
         self.trainable_params = sum(p.numel()
                                for p in self.model.parameters() if p.requires_grad)
-        print(f'Trainable parameters: {self.trainable_params}')
-        for n, p in self.model.named_parameters():
-            if p.requires_grad:
-                print(f'{n} is trainable.')
-        
         self.name_tag = cfg.model.type + '-' + cfg.data.name + '-' + cfg.decoder.model.type
         self.FILE_PATH = f'{get_git_repo_root_path()}/'
 
@@ -239,7 +230,7 @@ class LMTrainer():
             save_total_limit=1,
             load_best_model_at_end=True,
             gradient_accumulation_steps=self.grad_acc_steps,
-            per_device_train_batch_size=1, #self.batch_size,
+            per_device_train_batch_size=self.batch_size,
             per_device_eval_batch_size=self.batch_size * 8,
             warmup_steps=warmup_steps,
             num_train_epochs=self.epochs,
@@ -327,7 +318,7 @@ def parse_args() -> argparse.Namespace:
     r"""Parses the command line arguments."""
     parser = argparse.ArgumentParser(description='GraphGym')
     parser.add_argument('--cfg', dest='cfg_file', type=str, required=False,
-                        default='core/yamls/cora/lms/ft-minilm.yaml',
+                        default='core/yamls/cora/lms/ft-deberta.yaml',
                         help='The configuration file path.')
     parser.add_argument('--repeat', type=int, default=5,
                         help='The number of repeated jobs.')
@@ -370,7 +361,6 @@ if __name__ == '__main__':
     loggers = create_logger(args.repeat)
     start_ft = time.time()
     for run_id in range(args.repeat):
-        torch.cuda.empty_cache() 
         seed = run_id + args.start_seed
         custom_set_run_dir(cfg, run_id)
         set_printing(cfg)
@@ -419,5 +409,4 @@ if __name__ == '__main__':
     print_logger.info(f"Results for: {cfg.model.type}")
     print_logger.info(f"Model Params: {trainer.trainable_params}")
     print_logger.info(f"Inference time: {eval_time}")
-
 
