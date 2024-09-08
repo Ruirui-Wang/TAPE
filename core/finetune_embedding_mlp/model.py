@@ -18,6 +18,7 @@ from graphgps.score.custom_score import LinkPredictor
 # from functools import partial
 from graphgps.network.ncn import predictor_dict, convdict, GCN, CNLinkPredictor, IncompleteCN1Predictor
 
+from functools import partial
 
 class BertClassifier(PreTrainedModel):
     def __init__(self, model, cfg, dropout=0.0, seed=0, cla_bias=True, feat_shrink=''):
@@ -119,7 +120,8 @@ class BertClaInfModel(PreTrainedModel):
             cls_token_emb_2 = self.feat_shrink_layer(cls_token_emb_2)
 
         logits = self.bert_classifier.classifier(cls_token_emb_1, cls_token_emb_2).squeeze(dim=1)
-
+        if torch.cuda.is_available():
+            print(f"Memory allocated: {torch.cuda.memory_allocated() / 1024 ** 2:.2f} MB")
         self.emb = torch.stack((cls_token_emb_1, cls_token_emb_2), dim=1).cpu().numpy().astype(np.float16)
         self.pred = logits.cpu().numpy().astype(np.float16)
 
@@ -147,12 +149,11 @@ class NCNClassifier(PreTrainedModel):
         self.edges = inf_edges
         self.data = data
         hidden_dim = model.config.hidden_size
-        # predfn = predictor_dict[cfg.decoder.model.type]
+        predfn = predictor_dict[cfg.decoder.model.type]
         if cfg.decoder.model.type == 'NCN':
             predfn = CNLinkPredictor
         elif cfg.decoder.model.type == 'NCNC':
-            predfn = IncompleteCN1Predictor(predfn, scale=cfg.decoder.model.probscale,
-                                            offset=cfg.decoder.model.proboffset, pt=cfg.decoder.model.pt)
+            predfn = partial(predfn, scale=cfg.decoder.model.probscale,offset=cfg.decoder.model.proboffset, pt=cfg.decoder.model.pt)
         self.model = GCN(hidden_dim, cfg.decoder.model.hiddim, cfg.decoder.model.hiddim, cfg.decoder.model.mplayers,
                          cfg.decoder.model.gnndp, cfg.decoder.model.ln, cfg.decoder.model.res, cfg.decoder.data.max_x,
                          cfg.decoder.model.model, cfg.decoder.model.jk, cfg.decoder.model.gnnedp,
@@ -190,14 +191,15 @@ class NCNClassifier(PreTrainedModel):
         adj = SparseTensor.from_edge_index(tei, sparse_sizes=(self.data.num_nodes, self.data.num_nodes))
         adjmask[edge_pos] = 1
         adj = adj.to_symmetric()
-        outputs_1 = self.bert_encoder(input_ids=input_1,
-                                        attention_mask=attention_mask_1,
-                                        return_dict=return_dict,
-                                        output_hidden_states=True)
-        outputs_2 = self.bert_encoder(input_ids=input_2,
-                                        attention_mask=attention_mask_2,
-                                        return_dict=return_dict,
-                                        output_hidden_states=True)
+        with torch.no_grad():
+            outputs_1 = self.bert_encoder(input_ids=input_1,
+                                          attention_mask=attention_mask_1,
+                                          return_dict=return_dict,
+                                          output_hidden_states=True)
+            outputs_2 = self.bert_encoder(input_ids=input_2,
+                                          attention_mask=attention_mask_2,
+                                          return_dict=return_dict,
+                                          output_hidden_states=True)
         emb_1 = self.dropout(outputs_1['hidden_states'][-1])
         emb_2 = self.dropout(outputs_2['hidden_states'][-1])
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
@@ -336,6 +338,7 @@ class GCNClassifier(PreTrainedModel):
         self.data.x[node_id[:, 1]] = cls_token_emb_2
         h = self.model.encoder(self.data.x, batch_edge_index).detach()
         loss = self.model.recon_loss(h, edge_pos, edge_neg)
+        pred = self.model.decoder(h[node_id.T[0]], h[node_id.T[1]])
         return TokenClassifierOutput(loss=loss, logits=h)
 
 
@@ -402,3 +405,4 @@ class GCNClaInfModel(PreTrainedModel):
         loss = self.bert_classifier.model.recon_loss(h, edge_pos, edge_neg)
         pred = self.bert_classifier.model.decoder(h[node_id.T[0]], h[node_id.T[1]])
         return TokenClassifierOutput(loss=loss, logits=pred)
+
