@@ -137,6 +137,8 @@ class LMTrainer():
         self.eval_patience = cfg.lm.train.eval_patience
         self.grad_acc_steps = cfg.lm.train.grad_acc_steps
         self.lr = cfg.lm.train.lr
+        if self.decoder.model.type == 'NCNC':
+            self.lr = 0.001
         self.device = config_device(cfg).device
 
         self.use_gpt_str = "2" if cfg.lm.train.use_gpt else ""

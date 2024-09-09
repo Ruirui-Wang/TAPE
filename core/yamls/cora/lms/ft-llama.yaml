@@ -2,6 +2,7 @@ dataset: cora
 device: 0
 lm:
   model:
+    feat_shrink:
     name: meta-llama/Meta-Llama-3-8B
   train:
     att_dropout: 0.1
@@ -15,8 +16,6 @@ lm:
     use_gpt: False
     warmup_epochs: 0.6
     weight_decay: 0.0
-    feat_shrink: 256
-
 runs: 5
 seed: 0
 data:

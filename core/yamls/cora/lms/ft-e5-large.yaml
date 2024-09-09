@@ -6,10 +6,10 @@ lm:
     name: intfloat/e5-large-v2
   train:
     att_dropout: 0.1
-    batch_size: 9
+    batch_size: 128
     cla_dropout: 0.4
     dropout: 0.3
-    epochs: 24
+    epochs: 100
     eval_patience: 100000
     grad_acc_steps: 1
     lr: 0.0001
