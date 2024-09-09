@@ -12,7 +12,7 @@ run:
 
 train:
   mode: custom
-  batch_size: 1024 #
+  batch_size: 256 #
   eval_period: 1
   epochs: 100
   device: 0
@@ -38,8 +38,8 @@ model:
   xdp: 0.0 #
   tdp: 0.2 #
   gnnedp: 0.0 #
-  predp: 0.0 #
-  preedp: 0.0 #
+  predp: 0.05 #
+  preedp: 0.4 #
 
 
   probscale: 5.0 #
@@ -70,6 +70,6 @@ data:
 
 optimizer:
   type: adam
-  gnnlr: 0.0001 #
+  gnnlr: 0.001 #
   prelr: 0.001 #
   weight_decay: 0.0005

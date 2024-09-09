@@ -22,7 +22,5 @@ data:
   include_negatives: True
   val_pct: 0.15
   test_pct: 0.05
-  device: cpu
   split_labels: False
-  split_index: [0.8, 0.15, 0.05]
 
