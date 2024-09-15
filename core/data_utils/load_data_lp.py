@@ -93,7 +93,9 @@ def load_taglp_cora(cfg: CN, if_lcc: bool=True, alg_name: str='', node_features=
         data.x = node_features
     
     edge_index, _ = coalesce(data.edge_index, None, num_nodes=data.num_nodes)
-    edge_index = remove_self_loops(edge_index.T)[0]
+    if torch.__version__ == '2.2.1':
+        edge_index = remove_self_loops(edge_index)[0]
+    
     data.edge_index = edge_index
     print(f"original num of nodes: {data.num_nodes}")
     if alg_name.lower() == 'hl-gnn':
@@ -181,6 +183,7 @@ def get_edge_split(data: Data,
 
     ])
     del data.adj_t, data.e_id, data.batch_size, data.n_asin, data.n_id
+    del data.full_adj_t, data.max_x
     train_data, val_data, test_data = transform(data)
     return {'train': train_data, 'valid': val_data, 'test': test_data}
 
