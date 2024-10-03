@@ -59,7 +59,7 @@ class Trainer_embedding_LLM(Trainer):
         self.train_data = splits['train'].to(self.device)
         self.valid_data = splits['valid'].to(self.device)
         self.optimizer = optimizer
-        model_types = ['MLP-minilm', 'MLP-bert', 'MLP-llama', 'MLP-e5-large', 'MLP-tfidf', 'MLP-w2v']
+        model_types = ['MLP-minilm', 'MLP-bert', 'MLP-llama', 'MLP-e5-large', 'MLP-tfidf', 'MLP-w2v', 'MLP-gemma']
         self.test_func = {model_type: self._test for model_type in model_types}
         self.evaluate_func = {model_type: self._evaluate for model_type in model_types}
 
@@ -105,19 +105,17 @@ class Trainer_embedding_LLM(Trainer):
     def train(self):
         for epoch in range(1, self.epochs + 1):
             loss = self._train_mlp()
-            
             if epoch % int(self.report_step) == 0:
                 self.results_rank = self.merge_result_rank()
 
                 for key, result in self.results_rank.items():
                     self.loggers[key].add_result(self.run, result)
-                    self.tensorboard_writer.add_scalar(f"Metrics/Train/loss", loss, epoch)
+
                     self.tensorboard_writer.add_scalar(f"Metrics/Train/{key}", result[0], epoch)
                     self.tensorboard_writer.add_scalar(f"Metrics/Valid/{key}", result[1], epoch)
                     self.tensorboard_writer.add_scalar(f"Metrics/Test/{key}", result[2], epoch)
 
                     train_hits, valid_hits, test_hits = result
-                    
                     if key in ['MRR', 'Hits@100', 'AUC']:
                         self.print_logger.info(
                             f'Run: {self.run + 1:02d}, Key: {key}, '
@@ -230,7 +228,7 @@ class Trainer_Triples(Trainer_embedding_LLM):
                  repeat: int,
                  loggers: Dict[str, Logger],
                  print_logger: None,
-                 batch_size=None,):
+                 batch_size=None, ):
         self.device = config_device(cfg).device
         self.model = model.to(self.device)
         self.model_name = cfg.model.type
@@ -264,7 +262,7 @@ class Trainer_Triples(Trainer_embedding_LLM):
         self.out_dir = cfg.out_dir
         self.run_dir = cfg.run_dir
 
-        self.report_step = cfg.train.report_step
+        self.report_step = 100
 
     def _train_mlp(self):
         self.model.train()
@@ -297,22 +295,14 @@ class Trainer_Triples(Trainer_embedding_LLM):
     def _evaluate(self, eval_data: Dict[str, torch.Tensor]):
 
         if type(eval_data[0]) == csr_matrix:
-            array_data = eval_data[0].toarray()
-        else:
-            array_data = eval_data[0]
             eval_data[0] = eval_data[0].toarray()
+
         self.model.eval()
-        preds = self.model(torch.tensor(array_data).to(self.device))
+        preds = self.model(torch.tensor(eval_data[0]).to(self.device))
         pos_pred = preds[eval_data[1] == 1].squeeze().cpu()
         neg_pred = preds[eval_data[1] == 0].squeeze().cpu()
 
         result_mrr = get_metric_score(self.evaluator_hit, self.evaluator_mrr, pos_pred, neg_pred)
-        acc = self._acc(pos_pred, neg_pred)
-
-        if type(acc) is float:
-            result_mrr.update({'ACC': round(acc, 5)})
-        else:
-            result_mrr.update({'ACC': round(acc.tolist(), 5)})
         return result_mrr
 
     def merge_result_rank(self):

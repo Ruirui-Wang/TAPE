@@ -47,13 +47,13 @@ class BertClassifier(PreTrainedModel):
         attention_mask_2 = attention_mask[:, 1, :]
 
         outputs_1 = self.bert_encoder(input_ids=input_1,
-                                      attention_mask=attention_mask_1,
-                                      return_dict=return_dict,
-                                      output_hidden_states=True)
+                                                      attention_mask=attention_mask_1,
+                                                      return_dict=return_dict,
+                                                      output_hidden_states=True)
         outputs_2 = self.bert_encoder(input_ids=input_2,
-                                      attention_mask=attention_mask_2,
-                                      return_dict=return_dict,
-                                      output_hidden_states=True)
+                                                      attention_mask=attention_mask_2,
+                                                      return_dict=return_dict,
+                                                      output_hidden_states=True)
         emb_1 = self.dropout(outputs_1['hidden_states'][-1])
         emb_2 = self.dropout(outputs_2['hidden_states'][-1])
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
@@ -120,8 +120,6 @@ class BertClaInfModel(PreTrainedModel):
             cls_token_emb_2 = self.feat_shrink_layer(cls_token_emb_2)
 
         logits = self.bert_classifier.classifier(cls_token_emb_1, cls_token_emb_2).squeeze(dim=1)
-        if torch.cuda.is_available():
-            print(f"Memory allocated: {torch.cuda.memory_allocated() / 1024 ** 2:.2f} MB")
         self.emb = torch.stack((cls_token_emb_1, cls_token_emb_2), dim=1).cpu().numpy().astype(np.float16)
         self.pred = logits.cpu().numpy().astype(np.float16)
 
@@ -191,15 +189,28 @@ class NCNClassifier(PreTrainedModel):
         adj = SparseTensor.from_edge_index(tei, sparse_sizes=(self.data.num_nodes, self.data.num_nodes))
         adjmask[edge_pos] = 1
         adj = adj.to_symmetric()
-        with torch.no_grad():
-            outputs_1 = self.bert_encoder(input_ids=input_1,
-                                          attention_mask=attention_mask_1,
-                                          return_dict=return_dict,
-                                          output_hidden_states=True)
-            outputs_2 = self.bert_encoder(input_ids=input_2,
-                                          attention_mask=attention_mask_2,
-                                          return_dict=return_dict,
-                                          output_hidden_states=True)
+        import torch.utils.checkpoint as checkpoint
+        def bert_encoder_forward(input_ids, attention_mask):
+            outputs = self.bert_encoder(input_ids=input_ids,
+                                        attention_mask=attention_mask,
+                                        return_dict=return_dict,
+                                        output_hidden_states=True)
+            return outputs
+
+        outputs_1 = checkpoint.checkpoint(bert_encoder_forward, input_1, attention_mask_1)
+        outputs_2 = checkpoint.checkpoint(bert_encoder_forward, input_2, attention_mask_2)
+
+        '''outputs_1 = self.bert_encoder(input_ids=input_1,
+                                    attention_mask=attention_mask_1,
+                                    return_dict=return_dict,
+                                    output_hidden_states=True)
+        outputs_2 = self.bert_encoder(input_ids=input_2,
+                                    attention_mask=attention_mask_2,
+                                    return_dict=return_dict,
+                                    output_hidden_states=True)
+        print(self.bert_encoder.pooler.dense.weight)
+        print(self.bert_encoder.pooler.dense.weight.grad)'''
+        
         emb_1 = self.dropout(outputs_1['hidden_states'][-1])
         emb_2 = self.dropout(outputs_2['hidden_states'][-1])
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]
@@ -238,6 +249,7 @@ class NCNClaInfModel(PreTrainedModel):
                 node_id=None,
                 return_dict=None,
                 preds=None):
+        
         input_1 = input_ids[:, 0, :]
         input_2 = input_ids[:, 1, :]
         attention_mask_1 = attention_mask[:, 0, :]
@@ -319,14 +331,16 @@ class GCNClassifier(PreTrainedModel):
         batch_edge_index = torch.stack([col, row], dim=0)
         torch.cuda.empty_cache()
 
-        outputs_1 = self.bert_encoder(input_ids=input_1,
-                                      attention_mask=attention_mask_1,
-                                      return_dict=return_dict,
-                                      output_hidden_states=True)
-        outputs_2 = self.bert_encoder(input_ids=input_2,
-                                      attention_mask=attention_mask_2,
-                                      return_dict=return_dict,
-                                      output_hidden_states=True)
+        import torch.utils.checkpoint as checkpoint
+        def bert_encoder_forward(input_ids, attention_mask):
+            outputs = self.bert_encoder(input_ids=input_ids,
+                                        attention_mask=attention_mask,
+                                        return_dict=return_dict,
+                                        output_hidden_states=True)
+            return outputs
+
+        outputs_1 = checkpoint.checkpoint(bert_encoder_forward, input_1, attention_mask_1)
+        outputs_2 = checkpoint.checkpoint(bert_encoder_forward, input_2, attention_mask_2)
         emb_1 = self.dropout(outputs_1['hidden_states'][-1])
         emb_2 = self.dropout(outputs_2['hidden_states'][-1])
         cls_token_emb_1 = emb_1.permute(1, 0, 2)[0]

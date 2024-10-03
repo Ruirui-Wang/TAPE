@@ -70,6 +70,8 @@ class Trainer_SEAL(Trainer):
         self.evaluator_hit = Evaluator(name='ogbl-collab')
         self.evaluator_mrr = Evaluator(name='ogbl-citation2')
 
+        self.evaluator_hit = Evaluator(name='ogbl-collab')
+        self.evaluator_mrr = Evaluator(name='ogbl-citation2')
 
         self.run = run
         self.repeat = repeat

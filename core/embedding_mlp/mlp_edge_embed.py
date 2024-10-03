@@ -21,7 +21,7 @@ from graphgps.utility.utils import (
     set_cfg, parse_args, get_git_repo_root_path, run_loop_settings,
     create_logger
 )
-#from cuml.ensemble import RandomForestClassifier as cuRF
+from cuml.ensemble import RandomForestClassifier as cuRF
 from create_dataset import create_tfidf
 from heuristic.eval import get_metric_score
 import nltk

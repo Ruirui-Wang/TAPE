@@ -38,8 +38,6 @@ from graphgps.network.heart_gnn import GAT_Variant, GAE_forall, GCN_Variant, \
 
 writer = SummaryWriter()
 
-
-# todo
 def compute_metrics(p):
     from sklearn.metrics import accuracy_score
     pred, labels = p
@@ -139,6 +137,11 @@ class LMTrainer():
         self.lr = cfg.lm.train.lr
         if self.decoder.model.type == 'NCNC':
             self.lr = 0.001
+        elif self.decoder.model.type == 'MLP':
+            self.epochs = 24
+            self.batch_size = 9
+        elif self.decoder.model.type == 'GCN_Variant':
+            self.epochs = 70
         self.device = config_device(cfg).device
 
         self.use_gpt_str = "2" if cfg.lm.train.use_gpt else ""
@@ -177,8 +180,8 @@ class LMTrainer():
 
         # Define pretrained tokenizer and model
         bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
-        if 'mpnet' not in cfg.lm.model.name:
-            bert_model.gradient_checkpointing_enable()
+        '''if 'mpnet' not in cfg.lm.model.name:
+            bert_model.gradient_checkpointing_enable()'''
         hidden_size = bert_model.config.hidden_size
         current_size = self.data.x.size(1)
 
@@ -187,7 +190,7 @@ class LMTrainer():
             self.data.x = F.pad(self.data.x, (0, padding_size), "constant", 0)
         elif current_size > hidden_size:
             self.data.x = self.data.x[:, :hidden_size]
-
+        
         for name, param in bert_model.named_parameters():
             if 'encoder.layer.11' in name and 'mpnet' in cfg.lm.model.name:
                 break
@@ -220,9 +223,11 @@ class LMTrainer():
             if p.requires_grad:
                 print(f'{n} is trainable.')
         self.trainable_params = sum(p.numel()
-                                    for p in self.model.parameters() if p.requires_grad)
+                               for p in self.model.parameters() if p.requires_grad)
         print(f'Trainable params: {self.trainable_params}')
         self.name_tag = cfg.model.type + '-' + cfg.data.name + '-' + cfg.decoder.model.type
+        if self.decoder.model.type == 'GCN_Variant':
+            self.name_tag = cfg.model.type + '-' + cfg.data.name + '-' + args.model
         self.FILE_PATH = f'{get_git_repo_root_path()}/'
 
     @time_logger
@@ -254,6 +259,7 @@ class LMTrainer():
             fp16=True,
             dataloader_drop_last=True,
             max_grad_norm=10.0,
+            ddp_find_unused_parameters = True,
             remove_unused_columns=False if self.decoder.model.type != 'MLP' else True
         )
         self.trainer = Trainer(
@@ -379,7 +385,6 @@ if __name__ == '__main__':
     start_ft = time.time()
     for run_id in range(args.repeat):
         seed = run_id + args.start_seed
-        custom_set_run_dir(cfg, run_id)
         set_printing(cfg)
         print_logger = set_printing(cfg)
         cfg.seed = seed

@@ -4,7 +4,7 @@ import gc
 import transformers
 from sentence_transformers import SentenceTransformer
 from torch import Tensor, nn
-from transformers import BertTokenizer, BertModel, AutoTokenizer, AutoModel
+from transformers import BertTokenizer, BertModel, AutoTokenizer, AutoModel, AutoModelForCausalLM
 import torch_geometric.transforms as T
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     r"""Parses the command line arguments."""
     parser = argparse.ArgumentParser(description='GraphGym')
     parser.add_argument('--cfg', dest='cfg_file', type=str, required=False,
-                        default='core/yamls/pwc_small/lms/minilm.yaml',
+                        default='core/yamls/cora/lms/minilm.yaml',
                         help='The configuration file path.')
     parser.add_argument('--data', type=str, required=False, default='pwc_small',
                         help='data name')
@@ -68,7 +68,6 @@ if __name__ == '__main__':
     cfg.model.device = args.device
     cfg.device = args.device
     cfg.train.epochs = args.epoch
-    cfg.train.report_step = 1
     cfg.model.product = args.product
 
     torch.set_num_threads(cfg.num_threads)
@@ -301,13 +300,31 @@ if __name__ == '__main__':
                     with torch.no_grad():
                         outputs = model(**encoded_input)
                         batch_features = outputs.pooler_output
+                        print(batch_features.shape)
                         node_features.append(batch_features)
                 node_features = torch.cat(node_features, dim=0)
+            elif cfg.embedder.type == 'gemma':
+                tokenizer = AutoTokenizer.from_pretrained("google/gemma-2-2b")
+                model = AutoModelForCausalLM.from_pretrained("google/gemma-2-2b", device_map="auto")
+                emb_params = params_count(model)
+                node_features = []
+                batch_size = 16
+                for i in range(0, len(text), batch_size):
+                    batch_texts = text[i:i + batch_size]
+                    input_ids = tokenizer(batch_texts, return_tensors="pt", padding='max_length', truncation=True, max_length=512).to("cuda")
+                    with torch.no_grad():
+                        batch_features = model.get_input_embeddings()(input_ids.input_ids)
+                        batch_features = torch.mean(batch_features, dim=1)
+                        print(batch_features)
+                        node_features.append(batch_features)
+                node_features = torch.cat(node_features, dim=0)
+                node_features = node_features.to(torch.float32)
             node_features = torch.tensor(node_features)
             torch.save(node_features, saved_features_path)
         emb_time = time.time() - start_emb
 
         node_features = torch.tensor(node_features)
+        print(node_features.shape)
 
         for run_id in range(args.repeat):
             seed = run_id + args.start_seed
@@ -360,7 +377,7 @@ if __name__ == '__main__':
 
         cfg.model.params = params_count(model)
         print_logger.info(f"Results for: {cfg.model.type}")
-        print_logger.info(f"Embed Model Params: {emb_params}")
+        '''print_logger.info(f"Embed Model Params: {emb_params}")'''
         print_logger.info(f"Embed time: {emb_time}")
         print_logger.info(f'Num parameters: {cfg.model.params}')
         trainer.finalize()

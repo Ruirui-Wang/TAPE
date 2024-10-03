@@ -36,9 +36,7 @@ class Trainer_NeoGNN(Trainer):
                  repeat: int,
                  loggers: Dict[str, Logger],
                  print_logger: None,
-                 batch_size: None,
-                 emb_name: None):
-        
+                 batch_size=None,):
         self.device = config_device(cfg).device
         self.model = model.to(self.device)
         self.predictor = predictor.to(self.device)
@@ -83,7 +81,6 @@ class Trainer_NeoGNN(Trainer):
         self.run_dir = cfg.run_dir
 
         self.report_step = 1
-        self.emb_name = emb_name
 
     def _train_neognn(self):
         self.model.train()

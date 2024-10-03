@@ -18,7 +18,7 @@ from graph_embed.tune_utils import mvari_str2csv, save_parmet_tune
 from heuristic.eval import get_metric_score
 from graphgps.utility.utils import config_device, Logger
 from typing import Dict, Tuple
-import random 
+
 
 
 
@@ -147,7 +147,7 @@ class Trainer():
     
         return result_mrr
     
-    def _acc(self, pos_pred: torch.tensor, neg_pred: torch.tensor) -> float:
+    def _acc(self, pos_pred, neg_pred):
         hard_thres = (max(torch.max(pos_pred).item(), torch.max(neg_pred).item()) + min(torch.min(pos_pred).item(), torch.min(neg_pred).item())) / 2
 
         # Initialize predictions with zeros and set ones where condition is met
@@ -165,7 +165,8 @@ class Trainer():
         pos_y = torch.ones_like(pos_pred)
         neg_y = torch.zeros_like(neg_pred)
         y = torch.cat([pos_y, neg_y], dim=0)
-  
+        y_logits = torch.cat([pos_pred, neg_pred], dim=0)
+        # Calculate accuracy    
         return (y == y_pred).float().mean().item()
 
 
@@ -269,15 +270,12 @@ class Trainer():
         return best_valid_mean_metric, best_auc_metric, result_all_run
     
 
-    def save_result(self, results_dict: Dict[str, float], emb_name=None):  # sourcery skip: avoid-builtin-shadow
+    def save_result(self, results_dict: Dict[str, float]):  # sourcery skip: avoid-builtin-shadow
         
         root = os.path.join(self.FILE_PATH, cfg.out_dir)
-        acc_file = os.path.join(root, f'{self.data_name}_lm_mrr.csv') #{random.randint(1, 100)}/
+        acc_file = os.path.join(root, f'{self.data_name}_lm_mrr.csv')
         self.print_logger.info(f"save to {acc_file}")
         os.makedirs(root, exist_ok=True)
-        print('NAME: ', self.name_tag)
-        if emb_name is not None:
-            self.name_tag += f'-{emb_name}' 
         mvari_str2csv(self.name_tag, results_dict, acc_file)
 
 

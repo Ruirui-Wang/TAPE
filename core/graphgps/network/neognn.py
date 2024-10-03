@@ -178,6 +178,14 @@ def gcn_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
     # type: (Tensor, OptTensor, Optional[int], bool, bool, Optional[int]) -> PairTensor  # noqa
     pass
 
+
+@torch.jit._overload
+def gcn_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
+             add_self_loops=True, dtype=None):
+    # type: (SparseTensor, OptTensor, Optional[int], bool, bool, Optional[int]) -> SparseTensor  # noqa
+    pass
+
+
 def gcn_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
              add_self_loops=True, dtype=None):
     fill_value = 2. if improved else 1.

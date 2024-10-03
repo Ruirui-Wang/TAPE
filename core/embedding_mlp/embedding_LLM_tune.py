@@ -114,7 +114,6 @@ if __name__ == '__main__':
         pipeline = transformers.pipeline(
             "text-generation", model=model_id, model_kwargs={"torch_dtype": torch.bfloat16}, device_map="auto"
         )
-        # this should be a torch.tensor
         node_features = pipeline(text)
     elif cfg.embedder.type == 'bert':
         tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')

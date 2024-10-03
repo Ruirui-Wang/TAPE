@@ -39,9 +39,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--data', dest='data', type=str, required=True,
                         default='pubmed',
                         help='data name')
-    parser.add_argument('--emb_name', type=str, required=False,
-                        default='llama',
-                        help='Embedding node features name')
     parser.add_argument('--repeat', type=int, default=5,
                         help='The number of repeated jobs.')
     parser.add_argument('--start_seed', type=int, default=0,
@@ -81,14 +78,8 @@ def ngnn_dataset(splits):
 
 if __name__ == "__main__":
     FILE_PATH = f'{get_git_repo_root_path()}/'
-    
+
     args = parse_args()
-    embedding_paths = {
-    'llama': f'hl_gnn_planetoid/node_features/llama_{args.data}_saved_node_features.pt',
-    'bert': f'hl_gnn_planetoid/node_features/bert{args.data}saved_node_features.pt',
-    'e5': f'hl_gnn_planetoid/node_features/e5-large{args.data}saved_node_features.pt',
-    'minilm': f'hl_gnn_planetoid/node_features/minilm{args.data}saved_node_features.pt',
-    }
     cfg = set_cfg(FILE_PATH, args.cfg_file)
     cfg.merge_from_list(args.opts)
 
@@ -106,6 +97,7 @@ if __name__ == "__main__":
     best_params = {}
     loggers = create_logger(args.repeat)
     cfg.device = args.device
+
     for run_id in range(args.repeat):
         seed = run_id + args.start_seed
         custom_set_run_dir(cfg, run_id)
@@ -115,13 +107,7 @@ if __name__ == "__main__":
         cfg.run_id = run_id
         seed_everything(cfg.seed)
         cfg = config_device(cfg)
-        
-        if args.emb_name in embedding_paths:
-            node_features = torch.load(embedding_paths[args.emb_name])
-            node_features = torch.Tensor(node_features) if args.emb_name in ['e5', 'minilm'] else node_features
-            
-        splits, text, data = load_data_lp[cfg.data.name](cfg.data, node_features=node_features)
-
+        splits, text, data = load_data_lp[cfg.data.name](cfg.data)
         splits = ngnn_dataset(splits)
         path = f'{os.path.dirname(__file__)}/neognn_{cfg.data.name}'
         dataset = {}
@@ -148,21 +134,13 @@ if __name__ == "__main__":
                                args.repeat,
                                loggers,
                                print_logger=print_logger,
-                               batch_size=cfg.train.batch_size,
-                               emb_name=args.emb_name)
+                               batch_size=cfg.train.batch_size)
 
         start = time.time()
         trainer.train()
         end = time.time()
         print('Training time: ', end - start)
         save_run_results_to_csv(cfg, loggers, seed, run_id)
-        
-        alpha_values = [(args.epoch, layer, value.item()) for layer, value in enumerate(model.alpha.detach().cpu())]
-        # Save alpha values to a file
-        with open(f'neo_gnn_results/alpha_values_{args.emb_name}.txt', 'a') as f:
-            f.write(f'Model: NeoGNN Type embedding: {args.emb_name} Dataset: {args.data}\n')
-            for epoch, layer, value in alpha_values:
-                f.write(f'{epoch}\t{layer}\t{value}\n')
 
     print('All runs:')
 
@@ -171,8 +149,8 @@ if __name__ == "__main__":
         print(key)
         _, _, _, valid_test, _, _ = trainer.loggers[key].calc_all_stats()
         result_dict[key] = valid_test
-    print(result_dict)
-    trainer.save_result(result_dict, emb_name=args.emb_name)
+
+    trainer.save_result(result_dict)
 
     cfg.model.params = params_count(model)
     print_logger.info(f'Num parameters: {cfg.model.params}')

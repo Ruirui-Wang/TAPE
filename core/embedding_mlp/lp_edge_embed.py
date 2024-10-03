@@ -13,8 +13,7 @@ from torch_geometric import seed_everything
 from pdb import set_trace as st 
 from graphgps.utility.utils import (
     set_cfg, parse_args, get_git_repo_root_path, run_loop_settings,
-    create_logger, get_average_embedding, random_sampling,
-    set_cfg, parse_args, set_printing, preprocess
+    create_logger
 )
 # from cuml.ensemble import RandomForestClassifier as cuRF
 from heuristic.eval import get_metric_score
@@ -23,9 +22,13 @@ from graphgps.score.custom_score import LinkPredictor, mlp_decoder
 from nltk.tokenize import word_tokenize
 import re
 from gensim.models import Word2Vec
+from graphgps.utility.utils import (
+    set_cfg, parse_args, set_printing, 
+    random_sampling, preprocess, get_average_embedding
+)
 import time 
 from torch_geometric.graphgym.utils.comp_budget import params_count
-from data_utils.load import load_data_lp, load_taglp_pubmed
+from data_utils.load import load_data_lp
 from create_dataset import process_texts, process_nodefeat, load_or_generate_datasets
 from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier
@@ -33,7 +36,6 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from graphgps.train.embedding_LLM_train import Trainer_Triples
 from graphgps.utility.utils import save_run_results_to_csv
-
 "this script aims to compare rf and mlp based on concatenated embeddings"
 FILE_PATH = f'{get_git_repo_root_path()}/'
 
@@ -77,22 +79,19 @@ def parse_args() -> argparse.Namespace:
     r"""Parses the command line arguments."""
     parser = argparse.ArgumentParser(description='GraphGym')
     parser.add_argument('--data', dest='data', type=str, required=True,
-                        default='pwd',
+                        default='arxiv_2023',
                         help='data name')
     parser.add_argument('--device', dest='device', required=False, 
                         help='device id')
-    parser.add_argument('--epoch', dest='epoch', type=int, required=False,
-                        default=2,
+    parser.add_argument('--epochs', dest='epoch', type=int, required=False,
+                        default=200,
                         help='data name')
     parser.add_argument('--embedder', dest='embedder', type=str, required=False,
-                        default='tfidf',
+                        default='w2v',
                         help='word embedding method')
-    parser.add_argument('--report_step', dest='report_step', type=int, required=False,
-                        default=1,
-                        help='data name')
-    parser.add_argument('--decoder', dest='decoder', type=str, required=False,
-                        help='word embedding method')
-    parser.add_argument('--repeat', type=int, default=2,
+    # parser.add_argument('--score', dest='score', type=str, required=False, default='mlp_score',
+    #                     help='score')
+    parser.add_argument('--repeat', type=int, default=5,
                         help='The number of repeated jobs.')
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='See graphgym/config.py for remaining options.')
@@ -113,8 +112,7 @@ def project_main():
     cfg.device = args.device
     cfg.train.epochs = args.epoch
     cfg.embedder.type = args.embedder
-    cfg.train.report_step = args.report_step
-    
+
     writer = SummaryWriter()
     cfg.run_dir = writer.log_dir
     
@@ -124,11 +122,10 @@ def project_main():
     cfg.data.method = cfg.embedder.type
     print_logger = set_printing(cfg)
     
-    # splits, text, _ = load_data_lp[cfg.data.name](cfg.data)    
-    splits, text, _ = load_taglp_pubmed(cfg.data)
+    splits, text, _ = load_data_lp[cfg.data.name](cfg.data)
     splits = random_sampling(splits, cfg.data.scale)
 
-    if cfg.data.name in ['pwc_medium', 'pwc_large', 'citationv8']:
+    if cfg.data.name in ['pwc_small', 'pwc_medium', 'pwc_large', 'citationv8']:
         text = text['feat'].tolist()
     
     train_data, train_labels = process_texts(splits['train'].pos_edge_label_index,
@@ -196,8 +193,6 @@ def project_main():
     result_dict = {}
     for key in loggers:
         print(key)
-        if key == 'ACC':
-            continue
         _, _, _, valid_test, _, _ = trainer.loggers[key].calc_all_stats()
         result_dict[key] = valid_test
 

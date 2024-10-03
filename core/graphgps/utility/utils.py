@@ -4,7 +4,6 @@ import sys
 import numpy as np
 import time
 import datetime
-import re
 import pytz
 import torch
 import git
@@ -19,10 +18,11 @@ from torch_geometric.graphgym.config import (cfg,
 from torch_geometric.utils import remove_self_loops
 from typing import Tuple, List, Dict
 import logging
+from yacs.config import CfgNode
+import torch
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from transformers import AutoTokenizer, AutoModel
-# from sentence_transformers import SentenceTransformer
 import torch.nn.functional as F
 from tqdm import tqdm
 from torch.utils.data import DataLoader, TensorDataset
@@ -33,9 +33,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import nltk
 from nltk.tokenize import word_tokenize
 import re
+
 load_dotenv()
 
 set_float = lambda result: float(result.split(' ± ')[0])
+
 
 def get_git_repo_root_path():
     try:
@@ -51,8 +53,7 @@ def get_git_repo_root_path():
         print("Error:", result.stderr)
         return None
 
-        
-        
+
 def init_random_state(seed=0):
     # Libraries using GPU should be imported after specifying GPU-ID
     import torch
@@ -135,8 +136,6 @@ def get_root_dir():
     return os.path.join(file_dir, "..")
 
 
-
-
 # Define a function that uses the lambda function
 def process_value(v):
     return (lambda x: x.tolist() if isinstance(x, torch.Tensor) else x)(v)
@@ -145,7 +144,7 @@ def process_value(v):
 def append_acc_to_excel(uuid_val, metrics_acc, root, name, method):
     # if not exists save the first row
 
-    csv_columns = ['Metric'] + list(metrics_acc) 
+    csv_columns = ['Metric'] + list(metrics_acc)
     # load old csv
     try:
         Data = pd.read_csv(root)[:-1]
@@ -154,7 +153,7 @@ def append_acc_to_excel(uuid_val, metrics_acc, root, name, method):
         Data.to_csv(root, index=False)
 
     acc_lst = [process_value(v) for k, v in metrics_acc.items()]
-    # merge with old lines, 
+    # merge with old lines,
     v_lst = [f'{name}_{uuid_val}_{method}'] + acc_lst
     new_df = pd.DataFrame([v_lst], columns=csv_columns)
     new_Data = pd.concat([Data, new_df])
@@ -164,29 +163,21 @@ def append_acc_to_excel(uuid_val, metrics_acc, root, name, method):
 
     # concat and save
     Best_list = ['Best'] + highest_values[1:].tolist()
-    Best_df = pd.DataFrame([Best_list], columns=new_Data.columns)
+    Best_df = pd.DataFrame([Best_list], columns=Data.columns)
     upt_Data = pd.concat([new_Data, Best_df])
-    upt_Data.to_csv(root,index=False)
+    upt_Data.to_csv(root, index=False)
 
     return upt_Data
 
-def convert_to_float(value):
-    if isinstance(value, str):
-        match = re.match(r"([+-]?[0-9]*[.]?[0-9]+)", value)
-        if match:
-            return float(match.group(0))
-        else:
-            return None
-    return value
 
 def append_mrr_to_excel(uuid_val, metrics_mrr, root, name, method):
- 
     csv_columns, csv_numbers = [], []
-    for i, (k, v) in enumerate(metrics_mrr.items()): 
+    for i, (k, v) in enumerate(metrics_mrr.items()):
         if i == 0:
             csv_columns = ['Metric'] + list(v.keys())
         csv_numbers.append([f'{k}_{uuid_val}_{name}_{method}'] + list(v.values()))
-    
+
+    print(csv_numbers)
 
     try:
         Data = pd.read_csv(root)[:-1]
@@ -194,45 +185,29 @@ def append_mrr_to_excel(uuid_val, metrics_mrr, root, name, method):
         Data = pd.DataFrame(None, columns=csv_columns)
         Data.to_csv(root, index=False)
 
-    
-    new_df = pd.DataFrame(csv_numbers, columns = csv_columns)
+    new_df = pd.DataFrame(csv_numbers, columns=csv_columns)
     new_Data = pd.concat([Data, new_df])
-    
-    extracted_means = new_Data.applymap(convert_to_float)
 
-    columns_without_none = extracted_means.dropna(axis=1, how='any')
+    highest_values = new_Data.apply(lambda column: max(column, default=None))
+    Best_list = ['Best'] + highest_values[1:].tolist()
+    Best_df = pd.DataFrame([Best_list], columns=csv_columns)
+    upt_Data = pd.concat([new_Data, Best_df])
 
-    highest_values = columns_without_none.apply(lambda column: max(column, default=None))
-    
-    Best_list = ['Best'] + highest_values.tolist()
-    # print(csv_columns)
-    print(Best_list)
-    print(new_Data.columns)
-    print(len(Best_list))
-    print(len(new_Data.columns))
-    # print(len(csv_columns))
-    # while len(Best_list) < len(new_Data.columns):
-    #     Best_list += [None] * (len(new_Data.columns) - len(Best_list))
-
-    Best_df = pd.DataFrame([Best_list], columns=new_Data.columns)
-    upt_Data = pd.concat([new_Data, Best_df], ignore_index=True)
-    
     upt_Data.to_csv(root, index=False)
-    
+
     return upt_Data
 
 
 def config_device(cfg):
-    
-    # config 
+    # config
     if torch.cuda.is_available():
         # Get the number of available CUDA devices
         num_cuda_devices = torch.cuda.device_count()
         print(f'Number of available CUDA devices: {num_cuda_devices}')
-        # enviorment setting 
-        if type(cfg.device) is int and cfg.device <= num_cuda_devices -1:
+        # enviorment setting
+        if type(cfg.device) is int and cfg.device <= num_cuda_devices - 1:
             pass
-    else: 
+    else:
         cfg.device = 'cpu'
 
     # consistency
@@ -241,13 +216,13 @@ def config_device(cfg):
     elif hasattr(cfg, 'train') and hasattr(cfg.data, 'device'):
         cfg.train.device = cfg.device
     return cfg
-    
+
 
 def set_cfg(file_path, args):
     with open(file_path + args.cfg_file, "r") as f:
         return CN.load_cfg(f)
-    
-    
+
+
 def init_cfg_test():
     """
     Initialize a CfgNode instance to test dataloader for link prediction.
@@ -259,7 +234,7 @@ def init_cfg_test():
         CN: Initialized CfgNode instance.
     """
     cfg_dict = {
-        'data': {  
+        'data': {
             'undirected': True,
             'include_negatives': True,
             'val_pct': 0.1,
@@ -267,12 +242,12 @@ def init_cfg_test():
             'split_labels': True,
             'device': 'cpu',
             'split_index': [0.8, 0.15, 0.05],
-            'method':  'tfidf',
+            'method': 'tfidf',
             'name': 'cora'
-            },
-        'train':  {
-                'device': 'cpu'
-            }
+        },
+        'train': {
+            'device': 'cpu'
+        }
     }
     return CN(cfg_dict)
 
@@ -287,7 +262,7 @@ def create_logger(repeat):
         'Hits@100': Logger(repeat),
         'MRR': Logger(repeat),
         'mrr_hit1': Logger(repeat),
-        'mrr_hit3': Logger(repeat), 
+        'mrr_hit3': Logger(repeat),
         'mrr_hit10': Logger(repeat),
         'mrr_hit20': Logger(repeat),
         'mrr_hit50': Logger(repeat),
@@ -320,8 +295,9 @@ class Logger(object):
             Mean and standard deviation of the final test accuracy (r.mean():.2f ± r.std():.2f)
             Return the mean and variance of the highest validation accuracy for potential further use.
         - get_best_result(): Get the results stored in the logger.
-   
+
     """
+
     def __init__(self, runs, info=None):
         self.info = info
         self.runs = runs
@@ -329,57 +305,56 @@ class Logger(object):
 
     def reset(self):
         return [[] for _ in range(self.runs)]
-    
-    
+
     def add_result(self, run, result):
         assert len(result) == 3
         assert run >= 0 and run < len(self.results)
         self.results[run].append(result)
 
-
-    def calc_run_stats(self, 
-                       run:int =None, 
-                       print_mode:bool =True) -> Tuple[float, float, float, float]:
+    def calc_run_stats(self,
+                       run: int = None,
+                       print_mode: bool = True) -> Tuple[float, float, float, float]:
         result = 100 * torch.tensor(self.results[run])
         best_valid_epoch = result[:, 1].argmax().item()
         best_train_valid, _, best_test_valid = result[best_valid_epoch]
 
         if print_mode:
-            print(f'Highest Train: {result[:, 0].max().item():.2f} at Epoch {100*result[:, 0].argmax().item()}, Highest Valid: {result[:, 1].max().item():.2f} at Epoch {100*best_valid_epoch}, Final Train: {best_train_valid:.2f} at Epoch {100*best_valid_epoch} Final Test: {best_test_valid:.2f} at Epoch {100*best_valid_epoch}.')
-        
+            print(
+                f'Highest Train: {result[:, 0].max().item():.2f} at Epoch {100 * result[:, 0].argmax().item()}, Highest Valid: {result[:, 1].max().item():.2f} at Epoch {100 * best_valid_epoch}, Final Train: {best_train_valid:.2f} at Epoch {100 * best_valid_epoch} Final Test: {best_test_valid:.2f} at Epoch {100 * best_valid_epoch}.')
+
         # best train, best valid, train with the best valid epoch, test with the best valid epoch
-        return round(result[:, 0].max().item(), 2), round(result[:, 1].max().item(), 2), round(best_train_valid.item(), 2), round(best_test_valid.item(), 2)
-    
-    
-    def calc_all_stats(self, print_mode: bool=True) -> Tuple[str, str, str, List[float], List[float]]:
-        
+        return round(result[:, 0].max().item(), 2), round(result[:, 1].max().item(), 2), round(best_train_valid.item(),
+                                                                                               2), round(
+            best_test_valid.item(), 2)
+
+    def calc_all_stats(self, print_mode: bool = True) -> Tuple[str, str, str, List[float], List[float]]:
+
         best_results = [self.calc_run_stats(run=i, print_mode=False) for i in range(self.runs)]
-        
+
         best_result = torch.tensor(best_results)
 
         # best train
         r = best_result[:, 0].float()
         best_train = f'{r.mean():.2f} ± {r.std():.2f}'
 
-        # best valid 
+        # best valid
         r = best_result[:, 1].float()
         best_valid_mean = round(r.mean().item(), 2)
         best_valid_var = round(r.std().item(), 2)
         best_valid = f'{best_valid_mean:.2f} ± {best_valid_var:.2f}'
 
-
         # train with best valid
         r = best_result[:, 2].float()
         valid_train_mean = round(r.mean().item(), 2)
-        valid_train_var = round(r.std().item(), 2) 
+        valid_train_var = round(r.std().item(), 2)
         valid_train = f'{valid_train_mean:.2f} ± {valid_train_var:.2f}'
-        
+
         # test with best valid
         r = best_result[:, 3].float()
         valid_test_mean = round(r.mean().item(), 2)
         valid_test_var = round(r.std().item(), 2)
         valid_test = f'{valid_test_mean:.2f} ± {valid_test_var:.2f}'
-        
+
         # neglect best train and best valid
         mean_list = [valid_train_mean, best_valid_mean, valid_test_mean]
         var_list = [valid_train_var, best_valid_var, valid_test_var]
@@ -389,15 +364,14 @@ class Logger(object):
             print(f'Highest Valid: {best_valid}')
             print(f'Train with the best valid: {valid_train}')
             print(f'Test with the best valid epoch: {valid_test}')
-        
+
         return best_train, best_valid, valid_train, valid_test, mean_list, var_list
 
     def save2dict(self):
         "save the result into csv based on calc_all_stats"
-        
+
 
 def get_logger(name, log_dir, config_dir):
-
     """
     Set up printing options
 
@@ -420,42 +394,40 @@ def get_logger(name, log_dir, config_dir):
     return logging_cfg
 
 
-
 def save_emb(score_emb, save_path):
-
     if len(score_emb) == 6:
-        pos_valid_pred,neg_valid_pred, pos_test_pred, neg_test_pred, x1, x2= score_emb
+        pos_valid_pred, neg_valid_pred, pos_test_pred, neg_test_pred, x1, x2 = score_emb
         state = {
-        'pos_valid_score': pos_valid_pred,
-        'neg_valid_score': neg_valid_pred,
-        'pos_test_score': pos_test_pred,
-        'neg_test_score': neg_test_pred,
-        'node_emb': x1,
-        'node_emb_with_valid_edges': x2
+            'pos_valid_score': pos_valid_pred,
+            'neg_valid_score': neg_valid_pred,
+            'pos_test_score': pos_test_pred,
+            'neg_test_score': neg_test_pred,
+            'node_emb': x1,
+            'node_emb_with_valid_edges': x2
 
         }
-        
+
     elif len(score_emb) == 5:
-        pos_valid_pred,neg_valid_pred, pos_test_pred, neg_test_pred, x= score_emb
+        pos_valid_pred, neg_valid_pred, pos_test_pred, neg_test_pred, x = score_emb
         state = {
-        'pos_valid_score': pos_valid_pred,
-        'neg_valid_score': neg_valid_pred,
-        'pos_test_score': pos_test_pred,
-        'neg_test_score': neg_test_pred,
-        'node_emb': x
+            'pos_valid_score': pos_valid_pred,
+            'neg_valid_score': neg_valid_pred,
+            'pos_test_score': pos_test_pred,
+            'neg_test_score': neg_test_pred,
+            'node_emb': x
         }
-        
+
     elif len(score_emb) == 4:
-        pos_valid_pred,neg_valid_pred, pos_test_pred, neg_test_pred, = score_emb
+        pos_valid_pred, neg_valid_pred, pos_test_pred, neg_test_pred, = score_emb
         state = {
-        'pos_valid_score': pos_valid_pred,
-        'neg_valid_score': neg_valid_pred,
-        'pos_test_score': pos_test_pred,
-        'neg_test_score': neg_test_pred,
+            'pos_valid_score': pos_valid_pred,
+            'neg_valid_score': neg_valid_pred,
+            'pos_test_score': pos_test_pred,
+            'neg_test_score': neg_test_pred,
         }
-   
+
     torch.save(state, save_path)
-        
+
 
 def negate_edge_index(edge_index, batch=None):
     """Negate batched sparse adjacency matrices given by edge indices.
@@ -595,7 +567,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--data', dest='data', type=str, required=False,
                         default='cora',
                         help='data name')
-        
+
     parser.add_argument('--repeat', type=int, default=5,
                         help='The number of repeated jobs.')
     parser.add_argument('--mark_done', action='store_true',
@@ -609,6 +581,7 @@ def parse_args() -> argparse.Namespace:
 def set_cfg(file_path, cfg_file):
     with open(file_path + cfg_file, "r") as f:
         return CN.load_cfg(f)
+
 
 def run_loop_settings(cfg: CN,
                       args: argparse.Namespace) -> Tuple[List[int], List[int], List[int]]:
@@ -646,10 +619,9 @@ def run_loop_settings(cfg: CN,
     return run_ids, seeds, split_indices
 
 
-
 def build_optimizer(args, params):
     weight_decay = args.weight_decay
-    filter_fn = filter(lambda p : p.requires_grad, params)
+    filter_fn = filter(lambda p: p.requires_grad, params)
     if args.opt == 'adam':
         optimizer = optim.Adam(filter_fn, lr=args.lr, weight_decay=weight_decay)
     elif args.opt == 'sgd':
@@ -667,12 +639,11 @@ def build_optimizer(args, params):
     return scheduler, optimizer
 
 
-
 class LinearDecayLR:
     def __init__(self, optimizer, start_lr, end_lr, num_epochs):
         """
         Initialize the LinearDecayLR scheduler.
-        
+
         Args:
             optimizer (Optimizer): Wrapped optimizer.
             start_lr (float): Initial learning rate.
@@ -689,14 +660,13 @@ class LinearDecayLR:
         """Update the learning rate for the current step."""
         self.step_count += 1
         lr = self.start_lr + (self.end_lr - self.start_lr) * (self.step_count / self.num_epochs)
-        
+
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
 
     def get_lr(self):
         """Get the current learning rate."""
         return [param_group['lr'] for param_group in self.optimizer.param_groups]
-
 
 
 def custom_set_out_dir(cfg, cfg_fname, name_tag):
@@ -714,7 +684,6 @@ def custom_set_out_dir(cfg, cfg_fname, name_tag):
     cfg.out_dir = os.path.join(cfg.out_dir, run_name)
 
 
-
 def custom_set_run_dir(cfg, wandb_tag):
     """Custom output directory naming for each experiment run.
 
@@ -728,7 +697,6 @@ def custom_set_run_dir(cfg, wandb_tag):
         os.makedirs(cfg.run_dir, exist_ok=True)
     else:
         makedirs_rm_exist(cfg.run_dir)
-
 
 
 def set_printing(cfg):
@@ -747,8 +715,8 @@ def set_printing(cfg):
     # Step 3: Create handlers
     # file_handler = logging.FileHandler(f'{cfg.run_dir}/logging.log')
     # console_handler = logging.StreamHandler(sys.stdout) # if you dont want to see the log in the console
-    console_handler = logging.StreamHandler() 
-    
+    console_handler = logging.StreamHandler()
+
     # Step 4: Set log levels for handlers
     # file_handler.setLevel(logging.INFO)
     console_handler.setLevel(logging.INFO)
@@ -761,7 +729,7 @@ def set_printing(cfg):
     # Step 6: Add handlers to the logger
     # 0logger.addHandler(file_handler)
     logger.addHandler(console_handler)
-    
+
     return logger
 
 
@@ -821,8 +789,7 @@ def create_scheduler(optimizer, scheduler_config):
     return scheduler
 
 
-def use_pretrained_llm_embeddings(model_type: str, model_name: str, data: List[str], batch_size: int=4):
-    
+def use_pretrained_llm_embeddings(model_type: str, model_name: str, data: List[str], batch_size: int = 4):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if model_type == "sentence_embedding":
         embeddings = sentence_transformer_embedding_generation(model_name, data)
@@ -832,22 +799,24 @@ def use_pretrained_llm_embeddings(model_type: str, model_name: str, data: List[s
 
     elif model_type == "closed_source":
         embeddings = close_source_embedding_generation(model_name, data)
-        
+
     elif model_type == "shallow_embedding":
         embeddings = shallow_embedding_generation(model_name, data)
-        
+
     elif model_type == "fine_tuned_embedding":
         embeddings = custom_model_embedding_generation(model_name, data)
-        
+
     return embeddings
-            
+
+
 def sentence_transformer_embedding_generation(model_name: str, data: List[str]) -> torch.Tensor:
+    from sentence_transformers import SentenceTransformer
     embedding_model = SentenceTransformer(model_name)
     print("Start sentence embedding generation")
     embeddings = torch.tensor(embedding_model.encode(data))
     print("Embedding sentence generation completed")
     return embeddings
-    
+
 
 def open_source_embedding_generation(model_name: str, device: str, data: List[str], batch_size: int) -> torch.Tensor:
     hf_token = os.getenv('HF_TOKEN')
@@ -870,7 +839,7 @@ def open_source_embedding_generation(model_name: str, device: str, data: List[st
 
     all_embeddings = []
 
-    model.eval() 
+    model.eval()
     with torch.no_grad():
         for batch in tqdm(dataloader):
             batch_input_ids, batch_attention_mask = [b.to(device) for b in batch]
@@ -882,10 +851,11 @@ def open_source_embedding_generation(model_name: str, device: str, data: List[st
     embeddings = torch.cat(all_embeddings, dim=0)
     return embeddings
 
+
 def close_source_embedding_generation(model_name: str, data: List[str]):
     openai_api_key = os.getenv('OPENAI_API_KEY')
     open_ai_client = OpenAI(api_key=openai_api_key)
-    embeddings = [] 
+    embeddings = []
     print("Start OpenAI embedding generation")
     for text in tqdm(data):
         response = open_ai_client.embeddings.create(
@@ -897,24 +867,28 @@ def close_source_embedding_generation(model_name: str, data: List[str]):
     print("Embedding generation completed")
     return embeddings
 
+
 def shallow_embedding_generation(model_name: str, data: List[str]) -> torch.Tensor:
     if model_name == "tfidf":
         vectorizer = TfidfVectorizer()
         embeddings = torch.tensor(vectorizer.fit_transform(data).toarray(), dtype=torch.float32)
     return embeddings
 
+
 def custom_model_embedding_generation(model_path: str, data: List[str]) -> torch.Tensor:
+    from sentence_transformers import SentenceTransformer
     embedding_model = SentenceTransformer(model_path)
     print("Start sentence embedding generation")
     embeddings = torch.tensor(embedding_model.encode(data))
     print("Embedding sentence generation completed")
     return embeddings
 
+
 def mean_pooling(model_output, attention_mask):
-    token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+    token_embeddings = model_output[0]  # First element of model_output contains all token embeddings
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-        
+
 
 def init_model_from_pretrained(model, pretrained_dir, freeze_pretrained=False):
     """ Copy model parameters from pretrained model except the prediction head.
@@ -948,6 +922,7 @@ def init_model_from_pretrained(model, pretrained_dir, freeze_pretrained=False):
             if not key.startswith('post_mp'):
                 param.requires_grad = False
     return model
+
 
 def flatten_dict(metrics):
     """Flatten a list of train/val/test metrics into one dict to send to wandb.
@@ -1016,7 +991,9 @@ def make_wandb_name(cfg):
     name = f"{dataset_name}.{model_name}.r{cfg.run_id}"
     return name
 
+
 import pandas as pd
+
 
 def analyse_hyper(file_path: str):
     # Load the CSV file
@@ -1031,26 +1008,27 @@ def analyse_hyper(file_path: str):
 
     # Extract relevant columns and their values
     best_combination = best_row[['out_channels', 'hidden_channels', 'base_lr', 'score_num_layers_predictor',
-                                'score_gin_mlp_layer', 'score_hidden_channels', 'score_out_channels',
-                                'score_num_layers', 'score_dropout', 'product', 'epochs', 'train_time',
-                                'test_time', 'params']]
+                                 'score_gin_mlp_layer', 'score_hidden_channels', 'score_out_channels',
+                                 'score_num_layers', 'score_dropout', 'product', 'epochs', 'train_time',
+                                 'test_time', 'params']]
 
     # Print the best combination and its performance metrics
     print("Best Hyperparameter Combination:")
     print(best_combination)
     print("\nPerformance Metrics:")
     print(best_row[['Hits@1', 'Hits@3', 'Hits@10', 'Hits@20', 'Hits@50', 'Hits@100',
-                    'MRR', 'mrr_hit1', 'mrr_hit3', 'mrr_hit10', 'mrr_hit20', 'mrr_hit50', 
+                    'MRR', 'mrr_hit1', 'mrr_hit3', 'mrr_hit10', 'mrr_hit20', 'mrr_hit50',
                     'mrr_hit100', 'AUC', 'AP', 'ACC']])
 
     # Example of saving the best combination to a new CSV file
     best_combination_df = pd.DataFrame(best_combination).transpose()
     best_combination_df.to_csv('best_hyperparameter_combination.csv', index=False)
-    return 
+    return
 
 
 import time
 import random
+
 
 def timeit(func):
     def wrapper(*args, **kwargs):
@@ -1060,6 +1038,7 @@ def timeit(func):
         elapsed = end - start
         print(f'Time taken: {elapsed:.6f} seconds')
         return result
+
     return wrapper
 
     if freeze_pretrained:
@@ -1067,6 +1046,7 @@ def timeit(func):
             if not key.startswith('post_mp'):
                 param.requires_grad = False
     return model
+
 
 def save_run_results_to_csv(cfg, loggers, seed, run_id):
     """
@@ -1086,11 +1066,8 @@ def save_run_results_to_csv(cfg, loggers, seed, run_id):
     for key in loggers:
         result_dict['model'] = cfg.model.type
         result_dict['seed'] = seed
-        if key == 'ACC': # we remove the ACC metric
-            continue 
         _, _, _, test_bvalid = loggers[key].calc_run_stats(run_id)
         result_dict[key] = test_bvalid
-
 
     # Convert the result dictionary to a DataFrame
     results = pd.DataFrame(result_dict, index=[0])
@@ -1098,7 +1075,7 @@ def save_run_results_to_csv(cfg, loggers, seed, run_id):
     # Define the file path
     FILE_PATH = get_git_repo_root_path() + '/'
     root = os.path.join(FILE_PATH, 'results')
-    
+
     os.makedirs(root, exist_ok=True)  # Create the directory if it doesn't exist
     file_path = os.path.join(root, f'{cfg.data.name}_final_results.csv')
 
@@ -1109,20 +1086,24 @@ def save_run_results_to_csv(cfg, loggers, seed, run_id):
     results.to_csv(file_path, mode='a', header=not file_exists, index=False)
 
     # Also save with a unique filename for the specific run
-    unique_file_path = os.path.join(cfg.run_dir, f'results_seed_{seed}.csv')
-    results.to_csv(unique_file_path, index=False)
+    # unique_file_path = os.path.join(cfg.run_dir, f'results_seed_{seed}.csv')
+    # results.to_csv(unique_file_path, index=False)
+
 
 def random_sampling(splits, scale: int):
     print(f"train adj shape: {splits['train'].edge_index.shape[1]}")
-    
+
     for k, data in splits.items():
-        print(f"{k}: original length {data.pos_edge_label_index.shape[1]}")
-        num_samples = int(data.neg_edge_label_index.shape[1] * scale)
-        sampled_indices = np.random.choice(data.neg_edge_label_index.shape[1], num_samples, replace=False)
-        data.pos_edge_label_index = data.pos_edge_label_index[:, sampled_indices]
-        data.neg_edge_label_index = data.neg_edge_label_index[:, sampled_indices]
-        print(f"{k}: downsampled length {data.pos_edge_label_index.shape[1]}")
-        
+        if k!='train':
+            print(f"{k}: original length {data.pos_edge_label_index.shape[1]}")
+            num_samples = int(data.neg_edge_label_index.shape[1] * scale)
+            sampled_indices = np.random.choice(data.neg_edge_label_index.shape[1], num_samples, replace=False)
+            data.pos_edge_label_index = data.pos_edge_label_index[:, sampled_indices]
+            data.neg_edge_label_index = data.neg_edge_label_index[:, sampled_indices]
+            data.neg_edge_label = data.neg_edge_label[sampled_indices]
+            data.pos_edge_label = data.pos_edge_label[sampled_indices]
+            print(f"{k}: downsampled length {data.pos_edge_label_index.shape[1]}")
+
     return splits
 
 
@@ -1130,6 +1111,7 @@ def preprocess(text):
     text = re.sub(r'\W+', ' ', text)
     tokens = word_tokenize(text.lower())
     return tokens
+
 
 def get_average_embedding(text, model):
     tokens = preprocess(text)

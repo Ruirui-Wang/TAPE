@@ -35,9 +35,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--data', dest='data', type=str, required=False,
                         default='cora',
                         help='data name')
-    parser.add_argument('--emb_name', type=str, required=False,
-                        default='llama',
-                        help='Embedding node features name')
     parser.add_argument('--device', dest='device', required=True,
                         help='device id')
     parser.add_argument('--epochs', dest='epoch', type=int, required=False,
@@ -74,12 +71,6 @@ if __name__ == "__main__":
     FILE_PATH = f'{get_git_repo_root_path()}/'
 
     args = parse_args()
-    embedding_paths = {
-    'llama': f'hl_gnn_planetoid/node_features/llama_{args.data}_saved_node_features.pt',
-    'bert': f'hl_gnn_planetoid/node_features/bert{args.data}saved_node_features.pt',
-    'e5': f'hl_gnn_planetoid/node_features/e5-large{args.data}saved_node_features.pt',
-    'minilm': f'hl_gnn_planetoid/node_features/minilm{args.data}saved_node_features.pt',
-    }
     cfg = set_cfg(FILE_PATH, args.cfg_file)
     cfg.merge_from_list(args.opts)
     cfg.data.device = args.device
@@ -92,8 +83,7 @@ if __name__ == "__main__":
     batch_sizes = [cfg.train.batch_size]
 
     best_acc = 0
-    best_result = None
-    best_params = None
+    best_params = {}
     loggers = create_logger(args.repeat)
 
 
@@ -106,11 +96,7 @@ if __name__ == "__main__":
         cfg.run_id = run_id
         seed_everything(cfg.seed)
         cfg = config_device(cfg)
-        if args.emb_name in embedding_paths:
-            node_features = torch.load(embedding_paths[args.emb_name])
-            node_features = torch.Tensor(node_features) if args.emb_name in ['e5', 'minilm'] else node_features
-            
-        splits, text, data = load_data_lp[cfg.data.name](cfg.data, node_features=node_features)
+        splits, text, data = load_data_lp[cfg.data.name](cfg.data)
 
         path = f'{os.path.dirname(__file__)}/neognn_{cfg.data.name}'
         print_logger = set_printing(cfg)
@@ -120,17 +106,9 @@ if __name__ == "__main__":
             f"\n Valid: {2 * splits['train']['pos_edge_label'].shape[0]} samples,"
             f"\n Test: {2 * splits['test']['pos_edge_label'].shape[0]} samples")
         dump_cfg(cfg)
-        hyperparameter_search = {'hidden_channels': [64],#, 128, 256, 512, 1024, 2048, 4096, 8192], 
-                                 'num_layers': [1],# 2, 3, 4], 
-                                 'mlp_num_layers': [3],#[1, 2, 3, 4],
-                                 'f_edge_dim': [8], 
-                                 'f_node_dim': [128], 
-                                 'dropout': [0, 0.1, 0.2, 0.3, 0.4, 0.5],
-                                 'batch_size': [1024],#[128, 256, 512, 1024], 
-                                 'lr': [0.001]#[0.01, 0.001, 0.0001]
-                                 } 
-                                # Pubmed: bs: 128, 'lr': 0.0001 'hidden_channels': 128, ' num_layers': 1, 'mlp_num_layers': 4, 'f_node_dim': 128, 'f_edge_dim': 8, 'batch_size': 128, 'lr': 0.0001, 'dropout': 0.2}
-                                # Arxiv_2023: bs: 1024, 'lr': 0.001 'hidden_channels': 64, ' num_layers': 1, 'mlp_num_layers': 3, 'f_node_dim': 128, 'f_edge_dim': 8, 'dropout': 0.2,
+        hyperparameter_search = {'hidden_channels': [128, 256], 'num_layers': [1, 2, 3], 'mlp_num_layers': [2],
+                                 'f_edge_dim': [8], 'f_node_dim': [128], 'dropout': [0, 0.1, 0.3],
+                             "batch_size": [256, 512, 1024], "lr": [0.01, 0.001, 0.0001]}
 
         print_logger.info(f"hypersearch space: {hyperparameter_search}")
         for hidden_channels, num_layers, mlp_num_layers, f_edge_dim, f_node_dim, dropout, batch_size, lr in tqdm(
@@ -184,8 +162,7 @@ if __name__ == "__main__":
                                   args.repeat,
                                   loggers,
                                   print_logger=print_logger,
-                                  batch_size=batch_size,
-                                  emb_name=args.emb_name)
+                                  batch_size=batch_size)
 
             trainer.train()
 
@@ -207,13 +184,4 @@ if __name__ == "__main__":
             trainer.save_tune(run_result, to_file)
 
             print_logger.info(f"runing time {time.time() - start_time}")
-            current_result = loggers['AUC'].results[0]
-            print(current_result)
-            if best_result is None or current_result > best_result:
-                best_result = current_result
-                
-                best_params = (f"hidden_channels: {hidden_channels}, num_layers: {num_layers}, mlp_num_layers:{mlp_num_layers}, f_node_dim: {f_node_dim}, "
-                f"f_edge_dim: {f_edge_dim}, dropout: {dropout}, batch_size: {batch_size}, lr: {lr}")
-
             torch.cuda.empty_cache()
-    print(f'Best result: {best_result} with params: {best_params}')
