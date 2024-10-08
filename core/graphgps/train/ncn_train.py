@@ -28,7 +28,6 @@ from graphgps.utility.utils import config_device, Logger
 from typing import Dict, Tuple
 from graphgps.train.opt_train import (Trainer)
 from graphgps.utility.ncn import PermIterator
-from metrics_analysis.remap_and_visualize import visualize_weighted_adjacency_matrix
 
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
