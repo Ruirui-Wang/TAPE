@@ -11,12 +11,7 @@ from scipy.sparse import coo_matrix
 from tqdm import tqdm
 from typing import List
 import torch_geometric.utils as pyg_utils
-import networkx 
-if networkx.__version__ == '2.6.3':
-    from networkx import from_scipy_sparse_matrix as from_scipy_sparse_array
-else:
-    from networkx import from_scipy_sparse_array
-import networkx as nx 
+import networkx as nx
 import time
 
 def get_Data(data: Data):
@@ -143,7 +138,7 @@ def use_lcc(dataset: InMemoryDataset) -> InMemoryDataset:
     m = construct_sparse_adj(dataset.edge_index.numpy())
 
     start = time.time()
-    G = from_scipy_sparse_array(m)
+    G = nx.from_scipy_sparse_array(m)
     print('create graph:', time.time() - start)
 
     for i, c in enumerate(sorted(nx.connected_components(G), key=len, reverse=True)):
@@ -173,7 +168,7 @@ def use_lcc(dataset: InMemoryDataset) -> InMemoryDataset:
 
     new_data = Data(
         x = x_new,
-        edge_index = torch.LongTensor(edges).T,
+        edge_index = torch.LongTensor(edges),
         # y=y_new,
         num_nodes = torch.LongTensor(edges).max().tolist()+1,
         node_attrs = x_new,
