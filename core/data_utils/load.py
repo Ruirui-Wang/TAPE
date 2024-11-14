@@ -10,7 +10,11 @@ from data_utils.load_data_nc import (load_tag_cora,
                                      load_tag_product, 
                                      load_tag_arxiv23,
                                      load_tag_citeseer,
-                                     load_tag_citationv8,)
+                                     load_tag_citationv8,
+                                     load_tag_photo,
+                                     load_tag_history,
+
+                                     )
 from data_utils.load_data_lp import (load_taglp_arxiv2023, 
                                     load_taglp_cora, 
                                     load_taglp_pubmed, 
@@ -20,7 +24,10 @@ from data_utils.load_data_lp import (load_taglp_arxiv2023,
                                      load_taglp_citationv8,
                                      load_taglp_pwc_small,
                                      load_taglp_pwc_large,
-                                     load_taglp_pwc_medium,)
+                                     load_taglp_pwc_medium,
+                                     load_taglp_photo,
+                                     load_taglp_history,
+                                     )
 from data_utils.load_data_lp import (load_graph_cora, 
                                      load_graph_arxiv23,
                                      load_graph_ogbn_arxiv,
@@ -29,7 +36,8 @@ from data_utils.load_data_lp import (load_graph_cora,
                                      load_graph_citationv8,
                                      load_graph_pwc_small,
                                      load_graph_pwc_large,
-                                     load_graph_pwc_medium,)
+                                     load_graph_pwc_medium,
+                                     )
 
 # TODO standarize the input and output
 load_data_nc = {
@@ -53,6 +61,8 @@ load_data_lp = {
     'pwc_small': load_taglp_pwc_small,
     'pwc_large': load_taglp_pwc_large,
     'pwc_medium': load_taglp_pwc_medium,
+    'photo': load_taglp_photo,
+    'history': load_taglp_history,
 }
 
 load_graph_lp = {

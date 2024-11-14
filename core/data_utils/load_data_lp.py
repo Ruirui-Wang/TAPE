@@ -33,7 +33,7 @@ from data_utils.load_data_nc import load_tag_cora, load_tag_pubmed, \
     load_text_product, load_text_citeseer, load_text_citationv8, \
     load_graph_citeseer, load_graph_citationv8, load_graph_pwc_large, load_text_pwc_large, \
     load_graph_pwc_medium, load_text_pwc_medium, load_text_pwc_small,  load_graph_pwc_small, \
-    load_embedded_citationv8, load_pyg_citationv8
+    load_embedded_citationv8, load_pyg_citationv8, load_tag_photo, load_tag_history
 from graphgps.utility.utils import get_git_repo_root_path, config_device, init_cfg_test
 from data_utils.lcc import find_scc_direc, use_lcc_direc, use_lcc
 
@@ -307,7 +307,74 @@ def load_taglp_citationv8(cfg: CN, lcc_bool: bool=True) -> Tuple[Dict[str, Data]
     return splits, text, data
 
 
- 
+def load_taglp_photo(cfg: CN, lcc_bool: bool = True) -> Tuple[Dict[str, Data], List[str]]:
+    # add one default argument
+
+    data, text = load_tag_photo()
+
+    print(f"original num of nodes: {data.num_nodes}")
+    data.edge_index, _ = coalesce(data.edge_index, None, num_nodes=data.num_nodes)
+    data.edge_index, _ = remove_self_loops(data.edge_index)
+    if data.is_directed() is True:
+        data.edge_index = to_undirected(data.edge_index)
+        undirected = True
+    else:
+        undirected = data.is_undirected()
+
+    if lcc_bool:
+        data, lcc, _ = use_lcc(data)
+        text = [text[i] for i in lcc]
+
+    splits = get_edge_split(data,
+                            undirected,
+                            cfg.device,
+                            cfg.split_index[1],
+                            cfg.split_index[2],
+                            cfg.include_negatives,
+                            cfg.split_labels
+                            )
+    print(f"num of nodes after lcc: {data.num_nodes}")
+    print(f"num of edges after lcc: {data.edge_index.shape[1]}")
+    print(f"num of texts in dataset: {len(text)}")
+    print(f"split_train edges: {splits['train'].edge_index.max().tolist() + 1}")
+    print(f"split_valid edges: {splits['valid'].edge_index.max().tolist() + 1}")
+    print(f"split_test edges: {splits['test'].edge_index.max().tolist() + 1}")
+    return splits, text, data
+
+def load_taglp_history(cfg: CN, lcc_bool: bool = True) -> Tuple[Dict[str, Data], List[str]]:
+    # add one default argument
+
+    data, text = load_tag_history()
+
+    print(f"original num of nodes: {data.num_nodes}")
+    data.edge_index, _ = coalesce(data.edge_index, None, num_nodes=data.num_nodes)
+    data.edge_index, _ = remove_self_loops(data.edge_index)
+    if data.is_directed() is True:
+        data.edge_index = to_undirected(data.edge_index)
+        undirected = True
+    else:
+        undirected = data.is_undirected()
+
+    if lcc_bool:
+        data, lcc, _ = use_lcc(data)
+        text = [text[i] for i in lcc]
+
+    splits = get_edge_split(data,
+                            undirected,
+                            cfg.device,
+                            cfg.split_index[1],
+                            cfg.split_index[2],
+                            cfg.include_negatives,
+                            cfg.split_labels
+                            )
+    print(f"num of nodes after lcc: {data.num_nodes}")
+    print(f"num of edges after lcc: {data.edge_index.shape[1]}")
+    print(f"num of texts in dataset: {len(text)}")
+    print(f"split_train edges: {splits['train'].edge_index.max().tolist() + 1}")
+    print(f"split_valid edges: {splits['valid'].edge_index.max().tolist() + 1}")
+    print(f"split_test edges: {splits['test'].edge_index.max().tolist() + 1}")
+    return splits, text, data
+
 def load_taglp_pwc_large(cfg: CN, if_lcc) -> Tuple[Dict[str, Data], List[str]]:
     if hasattr(cfg, 'method'):
         pass

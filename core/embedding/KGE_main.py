@@ -4,6 +4,7 @@ import os, sys
 from torch_sparse import SparseTensor
 from torch_geometric.graphgym import params_count
 
+from core.embedding.KGE import KGEModel
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
@@ -21,8 +22,8 @@ from graphgps.utility.utils import set_cfg, get_git_repo_root_path, custom_set_r
 from graphgps.utility.ncn import PermIterator
 from graphgps.network.ncn import predictor_dict, convdict, GCN
 from data_utils.load import load_data_lp, load_graph_lp
-from graphgps.train.ncn_train import Trainer_NCN
 from graphgps.utility.utils import save_run_results_to_csv
+from graphgps.train.embedding_train import Trainer_Embedding
 
 
 
@@ -30,23 +31,20 @@ from graphgps.utility.utils import save_run_results_to_csv
 def parse_args() -> argparse.Namespace:
     r"""Parses the command line arguments."""
     parser = argparse.ArgumentParser(description='GraphGym')
-    parser.add_argument('--cfg', dest='cfg_file', type=str, required=False,
-                        default='core/yamls/cora/gcns/ncnc.yaml',
-                        help='The configuration file path.')
-
-    parser.add_argument('--sweep', dest='sweep_file', type=str, required=False,
-                        default='core/yamls/cora/gcns/ncn.yaml',
-                        help='The configuration file path.')
     parser.add_argument('--data', dest='data', type=str, required=True,
                         default='cora',
                         help='data name')
     parser.add_argument('--repeat', type=int, default=5,
                         help='The number of repeated jobs.')
+    parser.add_argument('--model', type=str, default='RotatE', )
     parser.add_argument('--start_seed', type=int, default=0,
                         help='The number of starting seed.')
     parser.add_argument('--batch_size', dest='bs', type=int, required=False,
                         default=2**15,
                         help='data name')
+    parser.add_argument('--cfg', dest='cfg_file', type=str, required=False,
+                        default='core/yamls/cora/embedding/embedding.yaml',
+                        help='The configuration file path.')
     parser.add_argument('--device', dest='device', required=True, 
                         help='device id')
     parser.add_argument('--epochs', dest='epoch', type=int, required=True,
@@ -62,22 +60,24 @@ def parse_args() -> argparse.Namespace:
                         help='Downsampling rate.')
     return parser.parse_args()
 
-def ncn_dataset(data, splits):
-    edge_index = data.edge_index
-    data.num_nodes = data.x.shape[0]
-    data.edge_weight = None
-    data.adj_t = SparseTensor.from_edge_index(edge_index, sparse_sizes=(data.num_nodes, data.num_nodes))
-    data.adj_t = data.adj_t.to_symmetric().coalesce()
-    data.max_x = -1
-    # Use training + validation edges for inference on test set.
-    if cfg.data.use_valedges_as_input:
-        val_edge_index = splits['valid']['pos_edge_label_index']
-        full_edge_index = torch.cat([edge_index, val_edge_index], dim=-1)
-        data.full_adj_t = SparseTensor.from_edge_index(full_edge_index, sparse_sizes=(data.num_nodes, data.num_nodes)).coalesce()
-        data.full_adj_t = data.full_adj_t.to_symmetric()
-    else:
-        data.full_adj_t = data.adj_t
-    return data
+
+def KGE_dataset(data, split):
+    edge_index = split['pos_edge_label_index']
+    default_relation = 0
+    source_nodes = data.x[edge_index[0]]
+    target_nodes = data.x[edge_index[1]]
+    pos_tuples = torch.stack((source_nodes, torch.full_like(source_nodes, default_relation), target_nodes), dim=1)
+    split['pos_tuple'] = pos_tuples
+
+    edge_index = split['neg_edge_label_index']
+    default_relation = 0
+    source_nodes = data.x[edge_index[0]]
+    target_nodes = data.x[edge_index[1]]
+    neg_tuples = torch.stack((source_nodes, torch.full_like(source_nodes, default_relation), target_nodes), dim=1)
+    split['neg_tuple'] = neg_tuples
+    return split
+
+
 
 
 
@@ -98,16 +98,14 @@ if __name__ == "__main__":
     torch.set_num_threads(cfg.num_threads)
     batch_sizes = [cfg.train.batch_size]
 
+
     best_acc = 0
     best_params = {}
     loggers = create_logger(args.repeat)
     cfg.device = args.device
-    predfn = predictor_dict[cfg.model.type]
-    if cfg.model.type == 'NCN':
-        predfn = partial(predfn)
-    if cfg.model.type == 'NCNC':
-        predfn = partial(predfn, scale=cfg.model.probscale, offset=cfg.model.proboffset, pt=cfg.model.pt)
-
+    cfg.model.model = args.model
+    cfg.model.type = args.model
+    cfg.wandb.name_tag = args.model
     for run_id in range(args.repeat):
         seed = run_id + args.start_seed
         custom_set_run_dir(cfg, run_id)
@@ -118,29 +116,27 @@ if __name__ == "__main__":
         cfg = config_device(cfg)
         start = time.time()
         splits, __, data = load_data_lp[cfg.data.name](cfg.data)
+        feature_dim = data.x.size(1)
         splits = random_sampling(splits, args.downsampling)
 
         data.edge_index = splits['train']['pos_edge_label_index']
-        data = ncn_dataset(data, splits).to(cfg.device)
-        path = f'{os.path.dirname(__file__)}/ncn_{cfg.data.name}'
+        for split in splits:
+            splits[split] = KGE_dataset(data, splits[split])
+        path = f'{os.path.dirname(__file__)}/embedding_{cfg.data.name}'
         dataset = {}
 
-        model = GCN(data.num_features, cfg.model.hiddim, cfg.model.hiddim, cfg.model.mplayers,
-                    cfg.model.gnndp, cfg.model.ln, cfg.model.res, cfg.data.max_x,
-                    cfg.model.model, cfg.model.jk, cfg.model.gnnedp, xdropout=cfg.model.xdp, taildropout=cfg.model.tdp,
-                    noinputlin=False)
+        model = KGEModel(cfg.model.model, data.num_nodes, 1, feature_dim, cfg.model.gamma)
 
-        predictor = predfn(cfg.model.hiddim, cfg.model.hiddim, 1, cfg.model.nnlayers,
-                           cfg.model.predp, cfg.model.preedp, cfg.model.lnnn)
 
-        optimizer = torch.optim.Adam([{'params': model.parameters(), "lr": cfg.optimizer.gnnlr},
-                                      {'params': predictor.parameters(), 'lr': cfg.optimizer.prelr}])
+        optimizer = torch.optim.Adam(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr=cfg.optimizer.lr
+        )
 
         # Execute experiment
-        trainer = Trainer_NCN(FILE_PATH,
+        trainer = Trainer_Embedding(FILE_PATH,
                                cfg,
                                model,
-                               predictor,
                                optimizer,
                                data,
                                splits,
@@ -169,5 +165,3 @@ if __name__ == "__main__":
 
     cfg.model.params = params_count(model)
     print_logger.info(f'Num parameters: {cfg.model.params}')
-    trainer.finalize()
-    print_logger.info(f"Inference time: {trainer.run_result['eval_time']}")

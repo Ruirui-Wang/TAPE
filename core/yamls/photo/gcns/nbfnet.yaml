@@ -1,0 +1,54 @@
+out_dir: results
+metric_best: acc
+cfg_dest: nbfnet.yaml
+print: file
+seed: 0
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+
+train:
+  mode: custom
+  batch_size: 256 #
+  eval_period: 1
+  epochs: 20
+  device: 0
+  auto_resume: False
+  final_eval: False
+  finetune: False
+
+model:
+  type: NBFNet
+  out_channels: 32
+  in_channels: 1433
+  hidden_channels: 256 #
+  num_layers: 3 #
+
+
+
+num_threads: 11
+
+wandb:
+  use: True
+  project: gtblueprint
+  name_tag: NBFNet-photo
+
+
+data:
+  name: photo
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+  num_features:  1433
+  device: 0
+  split_index: [0.8, 0.15, 0.05]
+
+optimizer:
+  type: adam
+  lr: 0.0001 #
+  weight_decay: 0.0005

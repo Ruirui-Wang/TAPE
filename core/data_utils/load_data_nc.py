@@ -239,6 +239,31 @@ def load_tag_product() -> Tuple[Data, List[str]]:
     return data, text
 
 
+def load_tag_history() -> Tuple[Data, List[str]]:
+    import dgl
+    graph = dgl.load_graphs(FILE_PATH + 'core/dataset/History/History.pt')[0][0]
+    graph = dgl.to_bidirected(graph)
+    from torch_geometric.utils import from_dgl
+    graph = from_dgl(graph)
+    graph.num_nodes = graph.edge_index.max() + 1
+    text = pd.read_csv(FILE_PATH + 'core/dataset/History/History.csv')
+    text = [f'Description: {cont}\n' for cont in text['text']]
+
+    graph.edge_index = graph.adj_t.to_symmetric()
+
+    return graph, text
+
+
+def load_tag_photo() -> Tuple[Data, List[str]]:
+    data = torch.load(FILE_PATH + 'core/dataset/Photo/Photo.pt')
+    text = pd.read_csv(FILE_PATH + 'core/dataset/Photo/Photo.csv')
+    text = [f'Description: {cont}\n' for cont in text['text']]
+
+    data.edge_index = data.adj_t.to_symmetric()
+
+    return data, text
+
+
 def parse_pubmed():
     n_nodes = 19717
     n_features = 500
@@ -452,7 +477,7 @@ def load_tag_product() -> Tuple[Data, List[str]]:
 
 def load_graph_citationv8() -> Data:
     import dgl
-    from pdb import set_trace as st;
+    from pdb import set_trace as st
     st()
     graph = dgl.load_graphs(FILE_PATH + 'core/dataset/citationv8/Citation-2015.pt')[0][0]
     graph = dgl.to_bidirected(graph)

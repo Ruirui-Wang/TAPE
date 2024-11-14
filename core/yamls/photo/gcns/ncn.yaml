@@ -1,0 +1,75 @@
+out_dir: results
+metric_best: acc
+cfg_dest: ncn.yaml
+print: file
+seed: 0
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+
+train:
+  mode: custom
+  batch_size: 1024 #
+  eval_period: 1
+  epochs: 100
+  device: 0
+  auto_resume: False
+  final_eval: False
+  finetune: False
+  dynamic_train: False
+
+model:
+  model: puregcn
+  type: NCN
+  out_channels: 32
+  in_channels: 1433
+  hidden_channels: 256
+  mplayers: 1
+  nnlayers: 3
+  ln: True
+  lnnn: True
+  res: False
+  jk: True
+  hiddim: 256 #
+  gnndp: 0.05 #
+  xdp: 0.7 #
+  tdp: 0.2 #
+  gnnedp: 0.0 #
+  predp: 0.05 #
+  preedp: 0.4 #
+
+
+  probscale: 5.0 #
+  proboffset: 3.0 #
+  pt: 0.05 #
+
+
+num_threads: 11
+
+wandb:
+  use: True
+  project: gtblueprint
+  name_tag: ncn-photo
+
+
+data:
+  name: photo
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+  num_features:  1433
+  device: 0
+  split_index: [0.8, 0.15, 0.05]
+  max_x: -1
+  use_valedges_as_input: True
+
+optimizer:
+  type: adam
+  gnnlr: 0.005 #
+  prelr: 0.005 #
+  weight_decay: 0.0005
