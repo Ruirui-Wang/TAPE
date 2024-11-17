@@ -19,7 +19,7 @@ from ogb.linkproppred import Evaluator
 
 
 class KGEModel(nn.Module):
-    def __init__(self, model_name, nentity, nrelation, feature_dim, gamma,
+    def __init__(self, model_name, nentity, nrelation, feature_dim, gamma, args,
                  double_entity_embedding=True, double_relation_embedding=True):
         super(KGEModel, self).__init__()
         self.model_name = model_name
@@ -40,15 +40,36 @@ class KGEModel(nn.Module):
 
         self.entity_dim = feature_dim * 2 if double_entity_embedding else feature_dim
         self.relation_dim = feature_dim * 2 if double_relation_embedding else feature_dim
+        self.feature_dim = feature_dim
 
         # Do not forget to modify this line when you add a new model in the "forward" function
-        if model_name not in ['TransE', 'DistMult', 'ComplEx', 'RotatE']:
+        if model_name not in ['TransE', 'DistMult', 'ComplEx', 'RotatE', 'ConvE']:
             raise ValueError('model %s not supported' % model_name)
 
         if model_name == 'RotatE':
             self.relation_embedding = torch.nn.Embedding(1, feature_dim)
         else:
             self.relation_embedding = torch.nn.Embedding(1, feature_dim * 2)
+
+        if model_name == 'ConvE':
+            self.inp_drop = torch.nn.Dropout(args.input_drop)
+            self.hidden_drop = torch.nn.Dropout(args.hidden_drop)
+            self.feature_map_drop = torch.nn.Dropout2d(args.feat_drop)
+
+            self.conv1 = torch.nn.Conv2d(1, 32, (3, 3), 1, 1, bias=args.use_bias)
+            self.bn0 = torch.nn.BatchNorm2d(1)
+            self.bn1 = torch.nn.BatchNorm2d(32)
+            self.bn2 = torch.nn.BatchNorm1d(feature_dim * 2)
+            self.fc = torch.nn.Linear(32 * 4 * feature_dim, feature_dim * 2)
+            self.register_parameter('b', torch.nn.Parameter(torch.zeros(nentity)))
+
+        self.model_func = {
+            'TransE': self.TransE,
+            'DistMult': self.DistMult,
+            'ComplEx': self.ComplEx,
+            'RotatE': self.RotatE,
+            'ConvE': self.ConvE,
+        }
 
     def forward(self, sample, mode='single'):
         '''
@@ -73,18 +94,48 @@ class KGEModel(nn.Module):
         else:
             raise ValueError('mode %s not supported' % mode)
 
-        model_func = {
-            'TransE': self.TransE,
-            'DistMult': self.DistMult,
-            'ComplEx': self.ComplEx,
-            'RotatE': self.RotatE,
-        }
 
-        if self.model_name in model_func:
-            score = model_func[self.model_name](head, relation, tail, mode)
+
+        if self.model_name in self.model_func:
+            score = self.model_func[self.model_name](head, relation, tail, mode)
         else:
             raise ValueError('model %s not supported' % self.model_name)
 
+        return score
+
+    def ConvE(self, head, relation, tail, mode):
+        """ConvE model implementation."""
+        # Embedding lookup
+        head_emb = head.view(-1, 1, 2, self.feature_dim)
+        relation_emb = relation.view(-1, 1, 2, self.feature_dim)
+        tail_emb = tail.view(-1, 1, 2, self.feature_dim)
+        # Concatenate the head and relation embeddings along the feature dimension
+        stacked_inputs = torch.cat([head_emb, relation_emb], 2)
+        stacked_inputs = self.bn0(stacked_inputs)
+
+
+        # Apply convolutions, activations, and dropout
+        x = self.inp_drop(stacked_inputs)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = F.relu(x)
+        x = self.feature_map_drop(x)
+
+
+        # Flatten and pass through fully connected layer
+        x = x.view(x.shape[0], -1)
+        x = self.fc(x)
+        x = self.hidden_drop(x)
+        x = self.bn2(x)
+        x = F.relu(x)
+
+        # Calculate the score
+        score = torch.mm(x, self.relation_embedding.weight.transpose(1, 0))
+        score += self.b.expand_as(score)
+
+        # score = torch.sum(x * tail_emb, dim=1)
+        score = torch.sigmoid(score)
+        print(score)
         return score
 
     def TransE(self, head, relation, tail, mode):

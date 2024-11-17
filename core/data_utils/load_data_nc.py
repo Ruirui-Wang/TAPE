@@ -1,7 +1,6 @@
 import os, sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import dgl
 import torch
 import pandas as pd
 import numpy as np
@@ -249,19 +248,20 @@ def load_tag_history() -> Tuple[Data, List[str]]:
     text = pd.read_csv(FILE_PATH + 'core/dataset/History/History.csv')
     text = [f'Description: {cont}\n' for cont in text['text']]
 
-    graph.edge_index = graph.adj_t.to_symmetric()
-
     return graph, text
 
 
 def load_tag_photo() -> Tuple[Data, List[str]]:
-    data = torch.load(FILE_PATH + 'core/dataset/Photo/Photo.pt')
+    import dgl
+    graph = dgl.load_graphs(FILE_PATH + 'core/dataset/Photo/Photo.pt')[0][0]
+    graph = dgl.to_bidirected(graph)
+    from torch_geometric.utils import from_dgl
+    graph = from_dgl(graph)
+    graph.num_nodes = graph.edge_index.max() + 1
     text = pd.read_csv(FILE_PATH + 'core/dataset/Photo/Photo.csv')
     text = [f'Description: {cont}\n' for cont in text['text']]
 
-    data.edge_index = data.adj_t.to_symmetric()
-
-    return data, text
+    return graph, text
 
 
 def parse_pubmed():

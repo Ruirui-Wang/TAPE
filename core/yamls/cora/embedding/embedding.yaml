@@ -24,7 +24,22 @@ train:
 model:
   model: ComplEx
   gamma: 20
-
+  ComplEx:
+    lr: 0.01
+  TransE:
+    lr: 0.01
+  DistMult:
+    lr: 0.01
+  RotatE:
+    lr: 0.001
+  ConvE:
+    lr: 0.001
+    embedding_shape1: 64
+    hidden_size: 16
+    input_drop: 0.2
+    hidden_drop: 0.3
+    feat_drop: 0.2
+    use_bias: True
 
 num_threads: 11
 
@@ -49,5 +64,4 @@ data:
 
 optimizer:
   type: adam
-  lr: 0.01
   weight_decay: 0.0005
