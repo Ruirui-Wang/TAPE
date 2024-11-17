@@ -184,14 +184,12 @@ class mlp_model(torch.nn.Module):
         super(mlp_model, self).__init__()
 
         self.lins = torch.nn.ModuleList()
-
         if num_layers == 1:
             self.lins.append(torch.nn.Linear(in_channels, hidden_channels))
         else:
             self.lins.append(torch.nn.Linear(in_channels, hidden_channels))
             for _ in range(num_layers - 2):
                 self.lins.append(torch.nn.Linear(hidden_channels, hidden_channels))
-
             self.lins.append(torch.nn.Linear(hidden_channels, out_channels))
 
         self.dropout = dropout
@@ -226,28 +224,23 @@ class GIN_Variant(torch.nn.Module):
                  dropout,  
                  mlp_layer=None,  data_name=None):
         super(GIN_Variant, self).__init__()
-
-        # self.mlp1= mlp_model( in_channels, hidden_channels, hidden_channels, gin_mlp_layer, dropout)
-        # self.mlp2 = mlp_model( hidden_channels, hidden_channels, out_channels, gin_mlp_layer, dropout)
-
         self.convs = torch.nn.ModuleList()
         gin_mlp_layer = mlp_layer
         
         if num_layers == 1:
             self.mlp= mlp_model( in_channels, hidden_channels, hidden_channels, gin_mlp_layer, dropout)
             self.convs.append(GINConv(self.mlp))
-
-        else:
-            # self.mlp_layers = torch.nn.ModuleList()
-            self.mlp1 = mlp_model( in_channels, hidden_channels, hidden_channels, gin_mlp_layer, dropout)
+        # else:
+        #     # self.mlp_layers = torch.nn.ModuleList()
+        #     self.mlp1 = mlp_model( in_channels, hidden_channels, hidden_channels, gin_mlp_layer, dropout)
             
-            self.convs.append(GINConv(self.mlp1))
-            for _ in range(num_layers - 2):
-                self.mlp = mlp_model( hidden_channels, hidden_channels, hidden_channels, gin_mlp_layer, dropout)
-                self.convs.append(GINConv(self.mlp))
+        #     self.convs.append(GINConv(self.mlp1))
+        #     for _ in range(num_layers - 2):
+        #         self.mlp = mlp_model( hidden_channels, hidden_channels, hidden_channels, gin_mlp_layer, dropout)
+        #         self.convs.append(GINConv(self.mlp))
 
-            self.mlp2 = mlp_model( hidden_channels, hidden_channels, out_channels, gin_mlp_layer, dropout)
-            self.convs.append(GINConv(self.mlp2))
+        #     self.mlp2 = mlp_model( hidden_channels, hidden_channels, out_channels, gin_mlp_layer, dropout)
+        #     self.convs.append(GINConv(self.mlp2))
 
         self.dropout = dropout
         self.invest = 1

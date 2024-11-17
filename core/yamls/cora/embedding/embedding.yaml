@@ -1,0 +1,53 @@
+out_dir: results
+metric_best: acc
+cfg_dest: embedding.yaml
+print: file
+seed: 0
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+
+train:
+  mode: custom
+  batch_size: 1024 #
+  eval_period: 1
+  epochs: 100
+  device: 0
+  auto_resume: False
+  final_eval: False
+  finetune: False
+  dynamic_train: False
+
+model:
+  model: ComplEx
+  gamma: 20
+
+
+num_threads: 11
+
+wandb:
+  use: True
+  project: gtblueprint
+  name_tag: embedding-cora
+
+
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+  num_features:  1433
+  device: 0
+  split_index: [0.8, 0.15, 0.05]
+  max_x: -1
+  use_valedges_as_input: True
+
+optimizer:
+  type: adam
+  lr: 0.001
+  weight_decay: 0.0005

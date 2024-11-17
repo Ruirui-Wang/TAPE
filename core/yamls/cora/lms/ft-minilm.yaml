@@ -2,7 +2,7 @@ dataset: cora
 device: 0
 lm:
   model:
-    feat_shrink: 
+    feat_shrink: None
     name: sentence-transformers/all-MiniLM-L6-v2
   train:
     att_dropout: 0.1

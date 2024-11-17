@@ -1,4 +1,5 @@
 import os, sys
+from ogb.nodeproppred import PygNodePropPredDataset
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # import dgl
@@ -8,7 +9,6 @@ import numpy as np
 import torch
 import random
 import json
-from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
 from sklearn.preprocessing import normalize
 from torch_geometric.data import Data

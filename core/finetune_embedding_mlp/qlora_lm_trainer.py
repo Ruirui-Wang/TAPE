@@ -196,7 +196,7 @@ class LMTrainer():
                         quantization_config=quantization_config, 
             )
 
-        bert_model.gradient_checkpointing_enable()
+        # bert_model.gradient_checkpointing_enable()
         hidden_size = bert_model.config.hidden_size
         current_size = self.data.x.size(1)
 
@@ -364,8 +364,10 @@ def parse_args() -> argparse.Namespace:
                         default=1000)
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='See graphgym/config.py for remaining options.')
-    parser.add_argument('--decoder',type=str, required=False)
-    parser.add_argument('--model', type=str, required=False)
+    parser.add_argument('--decoder',type=str, required=False,
+                        default='core/yamls/cora/gcns/heart_gnn_models.yaml')
+    parser.add_argument('--model', type=str, required=False,
+                        default='GraphSAGE_Variant')
     return parser.parse_args()
 
 

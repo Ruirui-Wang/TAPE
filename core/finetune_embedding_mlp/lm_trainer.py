@@ -34,8 +34,9 @@ from graph_embed.tune_utils import mvari_str2csv, save_parmet_tune
 from graphgps.score.custom_score import mlp_score, InnerProduct
 from graphgps.network.heart_gnn import GAT_Variant, GAE_forall, GCN_Variant, \
                                 SAGE_Variant, GIN_Variant, DGCNN
+from pprint import pprint
 writer = SummaryWriter()
-
+global args 
 # todo
 def compute_metrics(p):
     from sklearn.metrics import accuracy_score
@@ -109,7 +110,7 @@ def create_GAE_model(cfg_model: CN,
     else:
         # Without this else I got: UnboundLocalError: local variable 'model' referenced before assignment
         raise ValueError('Current model does not exist')
-
+    import pdb; pdb.set_trace
     return GAE_forall(encoder=encoder, decoder=decoder)
 
 class LMTrainer():
@@ -153,8 +154,8 @@ class LMTrainer():
             X = tokenizer(text, padding=True, truncation=True, max_length=512)
         else:
             X = tokenizer(text, padding=True, truncation=True, max_length=512)
-        dataset = LinkPredictionDataset(X, data.edge_index, torch.ones(data.edge_index.shape[1]))
-        self.inf_dataset = dataset
+        # dataset = LinkPredictionDataset(X, data.edge_index, torch.ones(data.edge_index.shape[1]))
+        # self.inf_dataset = dataset
 
         self.train_dataset = LinkPredictionDataset(X, torch.cat(
             [splits['train'].pos_edge_label_index, splits['train'].neg_edge_label_index], dim=1), torch.cat(
@@ -201,6 +202,10 @@ class LMTrainer():
             cfg_model.in_channels = hidden_size
             self.model = GCNClassifier(bert_model, cfg, self.data, self.data.edge_index,
                                        create_GAE_model(cfg_model, cfg_score, args.model)).to(self.device)
+            pprint(cfg_model)
+            pprint(cfg_score)
+            print(create_GAE_model(cfg_model, cfg_score, args.model))
+
         self.evaluator_hit = Evaluator(name='ogbl-collab')
         self.evaluator_mrr = Evaluator(name='ogbl-citation2')
         self.tensorboard_writer = writer
@@ -213,7 +218,8 @@ class LMTrainer():
         self.trainable_params = sum(p.numel()
                                for p in self.model.parameters() if p.requires_grad)
         print(f'Trainable params: {self.trainable_params}') 
-        self.name_tag = cfg.model.type + '-' + cfg.data.name + '-' + cfg.decoder.model.type
+        self.name_tag = f'{cfg.data.name}-{cfg.lm.model.name}-{args.model}'
+        print(f'name tag: {self.name_tag}')
         self.FILE_PATH = f'{get_git_repo_root_path()}/'
 
     @time_logger
@@ -327,20 +333,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--cfg', dest='cfg_file', type=str, required=False,
                         default='core/yamls/cora/lms/ft-minilm.yaml',
                         help='The configuration file path.')
-    parser.add_argument('--repeat', type=int, default=5,
+    parser.add_argument('--repeat', type=int, default=1,
                         help='The number of repeated jobs.')
     parser.add_argument('--start_seed', type=int, default=0,
                         help='The number of starting seed.')
-    parser.add_argument('--device', dest='device', required=False,
-                        help='device id')
+    # parser.add_argument('--device', dest='device', required=False,
+    #                     help='device id')
     parser.add_argument('--downsampling', type=float, default=1,
                         help='Downsampling rate.')
     parser.add_argument('--epochs', dest='epoch', type=int, required=False,
                         default=1000)
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='See graphgym/config.py for remaining options.')
-    parser.add_argument('--decoder',type=str, required=False)
-    parser.add_argument('--model', type=str, required=False)
+    parser.add_argument('--decoder',type=str, required=False, 
+                        default='core/yamls/cora/gcns/heart_gnn_models.yaml')
+    parser.add_argument('--model', type=str, required=False, 
+                        default='SAGE_Variant')
     return parser.parse_args()
 
 
@@ -351,6 +359,7 @@ if __name__ == '__main__':
     cfg = set_cfg(FILE_PATH, args.cfg_file)
     if args.decoder:
         cfg_decoder = set_cfg(FILE_PATH, args.decoder)
+        # cfg_decoder model and score will be used.
         cfg.decoder = cfg_decoder
     else:
         from yacs.config import CfgNode as CN
@@ -359,9 +368,9 @@ if __name__ == '__main__':
         cfg.decoder.model.type = 'MLP'
     cfg.merge_from_list(args.opts)
 
-    cfg.data.device = args.device
-    cfg.model.device = args.device
-    cfg.device = args.device
+    # cfg.data.device = args.device
+    # cfg.model.device = args.device
+    # cfg.device = args.device
     torch.set_num_threads(cfg.num_threads)
     best_acc = 0
     best_params = {}

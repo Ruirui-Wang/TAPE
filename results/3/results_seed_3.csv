@@ -1,0 +1,2 @@
+model,seed,Hits@1,Hits@3,Hits@10,Hits@20,Hits@50,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit20,mrr_hit50,mrr_hit100,AUC,AP,ACC
+RotatE,3,0.4,1.19,6.32,9.88,14.62,34.39,2.5,0.4,1.19,6.32,9.88,14.62,34.39,47.73,49.32,47.43
