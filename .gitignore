@@ -39,3 +39,10 @@ core/batch
 
 batch
 runs
+__pycache__/
+**/__pycache__
+generated_dataset/
+output/
+core/dataset.tar.gz
+prt_lm/
+archiv/
