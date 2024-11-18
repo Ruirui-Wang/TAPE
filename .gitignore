@@ -25,3 +25,5 @@ GNN/model/__pycache__/
 core/dataset
 batch
 runs
+__pycache__
+**/__pycache__/

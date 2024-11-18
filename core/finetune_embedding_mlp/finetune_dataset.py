@@ -6,10 +6,11 @@ class LinkPredictionDataset(torch.utils.data.Dataset):
     def __init__(self, encodings, edge_index, labels=None):
 
         self.encodings = encodings
-        self.edge_index = edge_index
-        self.labels = labels.long()
+        self.edge_index = edge_index.cpu()
+        self.labels = labels.long().cpu()
 
     def __getitem__(self, idx):
+        
         node1_idx, node2_idx = self.edge_index[:, idx]
 
         node1_features = {key: torch.tensor(val[node1_idx]) for key, val in self.encodings.items()}

@@ -4,7 +4,6 @@ import os, sys
 from torch_sparse import SparseTensor
 from torch_geometric.graphgym import params_count
 
-from core.embedding.KGE import KGEModel
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
@@ -24,6 +23,7 @@ from graphgps.network.ncn import predictor_dict, convdict, GCN
 from data_utils.load import load_data_lp, load_graph_lp
 from graphgps.utility.utils import save_run_results_to_csv
 from graphgps.train.embedding_train import Trainer_Embedding
+from embedding.KGE import KGEModel
 
 
 

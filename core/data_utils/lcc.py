@@ -138,7 +138,10 @@ def use_lcc(dataset: InMemoryDataset) -> InMemoryDataset:
     m = construct_sparse_adj(dataset.edge_index.numpy())
 
     start = time.time()
-    G = nx.from_scipy_sparse_array(m)
+    try:  # for undirected graph
+      G = nx.from_scipy_sparse_matrix(m)
+    except:
+      G = nx.from_scipy_sparse_array(m)
     print('create graph:', time.time() - start)
 
     for i, c in enumerate(sorted(nx.connected_components(G), key=len, reverse=True)):

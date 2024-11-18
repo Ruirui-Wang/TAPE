@@ -40,3 +40,7 @@ elif [ ${dataset} == "ogbn-products" ]; then
 else
     echo "dataset=${dataset} is not yet supported!"
 fi
+
+CUDA_VISIBLE_DEVICES=0 WANDB_DISABLED=True python core/finetune_embedding_mlp/lm_trainer.py --cfg core/yamls/cora/lms/ft-mpnet.yaml --decoder core/yamls/cora/gcns/ncn.yaml
+
+CUDA_VISIBLE_DEVICES=0 WANDB_DISABLED=True python core/finetune_embedding_mlp/lm_trainer.py --cfg core/yamls/cora/lms/ft-minilm.yaml --decoder core/yamls/cora/gcns/ncn.yaml

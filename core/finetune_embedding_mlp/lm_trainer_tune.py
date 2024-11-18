@@ -11,11 +11,10 @@ import torch
 from graphgps.utility.utils import random_sampling
 
 from torch_geometric import seed_everything
-from graphgps.utility.utils import set_cfg, get_git_repo_root_path, custom_set_run_dir, set_printing, run_loop_settings, \
-    create_optimizer, config_device, \
+from graphgps.utility.utils import set_cfg, get_git_repo_root_path, custom_set_run_dir, set_printing, config_device, \
     create_logger
 
-from data_utils.load import load_data_lp, load_graph_lp
+from data_utils.load import load_data_lp
 from graphgps.utility.utils import save_run_results_to_csv
 
 from transformers import AutoTokenizer, AutoModel, TrainingArguments, Trainer, IntervalStrategy
@@ -24,12 +23,11 @@ from finetune_dataset import LinkPredictionDataset
 from utils import init_path, time_logger
 from ogb.linkproppred import Evaluator
 import numpy as np
-from torch_geometric.data import Data
-from torch_geometric.loader import DataLoader
+
 from heuristic.eval import get_metric_score
-from graphgps.utility.utils import config_device, Logger
+from graphgps.utility.utils import config_device
 from torch.utils.tensorboard import SummaryWriter
-from graph_embed.tune_utils import mvari_str2csv, save_parmet_tune
+from graph_embed.tune_utils import mvari_str2csv
 
 writer = SummaryWriter()
 
