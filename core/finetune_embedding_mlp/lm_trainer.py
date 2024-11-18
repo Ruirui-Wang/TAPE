@@ -33,6 +33,7 @@ from graph_embed.tune_utils import mvari_str2csv, save_parmet_tune
 from graphgps.score.custom_score import mlp_score, InnerProduct
 from graphgps.network.heart_gnn import GAT_Variant, GAE_forall, GCN_Variant, \
     SAGE_Variant, GIN_Variant, DGCNN
+os.environ["TOKENIZERS_PARALLELISM"] = "false"  # Or "true"
 
 writer = SummaryWriter()
 
@@ -45,11 +46,12 @@ def compute_metrics(p):
 
 
 def gcn_dataset(data, splits):
-    edge_index = data.edge_index
+    edge_index = splits['train']['pos_edge_label_index']
     data.num_nodes = data.x.shape[0]
     data.edge_weight = None
-    data.adj_t = SparseTensor.from_edge_index(edge_index, sparse_sizes=(data.num_nodes, data.num_nodes))
+    data.adj_t = SparseTensor.from_edge_index(data.edge_index, sparse_sizes=(data.num_nodes, data.num_nodes))
     data.adj_t = data.adj_t.to_symmetric().coalesce()
+    print(data.adj_t)
     data.max_x = -1
     # Use training + validation edges for inference on test set.
     val_edge_index = splits['valid']['pos_edge_label_index']
@@ -266,7 +268,6 @@ class LMTrainer():
             train_dataset=self.train_dataset,
             eval_dataset=self.val_dataset,
             compute_metrics=compute_metrics,
-
             # callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
         )
 
@@ -371,6 +372,7 @@ if __name__ == '__main__':
         cfg.decoder = CN()
         cfg.decoder.model = CN()
         cfg.decoder.model.type = 'MLP'
+         
     cfg.merge_from_list(args.opts)
 
     # torch.set_num_threads(cfg.num_threads)
