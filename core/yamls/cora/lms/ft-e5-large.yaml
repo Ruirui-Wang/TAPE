@@ -6,11 +6,19 @@ lm:
     name: intfloat/e5-large-v2
   train:
     att_dropout: 0.1
+<<<<<<< HEAD
     batch_size: 9
     cla_dropout: 0.4
     dropout: 0.3
     epochs: 24
     eval_patience: 100000
+=======
+    batch_size: 128
+    cla_dropout: 0.4
+    dropout: 0.3
+    epochs: 250
+    eval_patience: 10000000000000000000
+>>>>>>> caa8aff586860fd3c255ceed9bbdca45a0e880f5
     grad_acc_steps: 1
     lr: 0.0001
     use_gpt: False

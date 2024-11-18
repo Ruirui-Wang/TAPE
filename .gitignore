@@ -1,90 +1,29 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-
-# C extensions
-*.so
-
-# Distribution / packaging
-bin/
-build/
-develop-eggs/
-dist/
-eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-.tox/
-.coverage
-.cache
-nosetests.xml
-coverage.xml
-
-# Translations
-*.mo
-
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
-
-# Rope
-.ropeproject
-
-# Django stuff:
-*.log
-*.pot
-
-# Output
-*.out
-*.txt
-
-# Sphinx documentation
-docs/_build/
-
-# dataset
-dataset/
-gpt_responses/
-gpt_preds/
-
-# logs and results
-logs/
-output/
-prt_lm/
-core/wandb/
+.vscode/
+LMs/Bert/__pycache__/
+LMs/Trainer/__pycache__/
+LMs/__pycache__/
+LMs/private/__pycache__/
+LMs/temp/Bert/
+LMs/utils/__pycache__/
+LMs/utils/data/Amazon/__pycache__/
+LMs/utils/data/OGB/__pycache__/
+LMs/utils/data/WebKB/__pycache__/
+LMs/utils/data/__pycache__/
+LMs/utils/function/__pycache__/
+LMs/utils/function/exp/
+LMs/utils/modules/__pycache__/
+data/CSTAG/
+data/Photo_RS/
+data/
+scripts/
 wandb/
-core/Embedding/wandb
-
-*.png
-
-core/Embedding/data/
-core/Embedding/temp_path/
-core/Embedding/temp_struc2vec/
-scripts/error/TAG_Benchmark_2336350.error
-scripts/log/TAG_Benchmar_2336350.output
-temp_path/
-
-scripts/error/
-scripts/log/
-*/tmp/ 
-
-*.pkl
-generated_dataset/
-dataset.tar.gz
-../results
-
+FeatureExtractor/.ipynb_checkpoints/
+GNN/RevGAT/__pycache__/
+GNN/RevGAT/eff_gcn_modules/__pycache__/
+GNN/RevGAT/eff_gcn_modules/rev/__pycache__/
+GNN/model/__pycache__/
 core/dataset
+
 */dataset
 core/gcns/results
 gcns/results
@@ -97,3 +36,6 @@ core/batch
 /core/embedding_mlp/models/
 /core/embedding_mlp/data/
 **.pt
+
+batch
+runs

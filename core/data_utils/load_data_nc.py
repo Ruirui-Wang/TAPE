@@ -1,7 +1,6 @@
 import os, sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-# import dgl
 import torch
 import pandas as pd
 import numpy as np
@@ -18,7 +17,12 @@ from graphgps.utility.utils import get_git_repo_root_path  # type: ignore
 from typing import Tuple, List, Dict, Set, Any
 from data_utils.lcc import use_lcc
 import torch_geometric.utils as pyg_utils
-import networkx as nx
+import networkx 
+if networkx.__version__ == '2.6.3':
+    from networkx import from_scipy_sparse_matrix as from_scipy_sparse_array
+else:
+    from networkx import from_scipy_sparse_array
+
 
 # import dgl
 
@@ -111,8 +115,8 @@ def load_graph_cora(use_mask) -> Data:
     data_edges = np.array(edges[~(edges == None).max(1)], dtype='int')
     data_edges = np.vstack((data_edges, np.fliplr(data_edges)))
 
-    dataset = Planetoid('./generated_dataset', 'cora',
-                        transform=T.NormalizeFeatures())
+    # dataset = Planetoid('./generated_dataset', 'cora',
+    #                    transform=T.NormalizeFeatures())
 
     x = torch.tensor(data_X).float()
     edge_index = torch.LongTensor(data_edges).T.clone().detach().long()
@@ -152,6 +156,7 @@ def load_graph_cora(use_mask) -> Data:
 
 def load_tag_cora() -> Tuple[Data, List[str]]:
     data, data_citeid = load_graph_cora(use_mask=False)  # nc True, lp False
+
     text = load_text_cora(data_citeid)
     print(f"Number of texts: {len(text)}")
     print(f"first text: {text[0]}")
@@ -179,7 +184,7 @@ def load_text_cora(data_citeid) -> List[str]:
 
     text = []
     not_loaded = []
-    i = 0
+    i, j = 0, 0
     for pid in data_citeid:
         fn = pid_filename[pid]
         try:
@@ -204,6 +209,7 @@ def load_text_cora(data_citeid) -> List[str]:
             i += 1
 
     print(f"not loaded {i} papers.")
+    print(f"not loaded {i} paperid.")
     return text
 
 
@@ -230,6 +236,32 @@ def load_tag_product() -> Tuple[Data, List[str]]:
     data.edge_index = data.adj_t.to_symmetric()
 
     return data, text
+
+
+def load_tag_history() -> Tuple[Data, List[str]]:
+    import dgl
+    graph = dgl.load_graphs(FILE_PATH + 'core/dataset/History/History.pt')[0][0]
+    graph = dgl.to_bidirected(graph)
+    from torch_geometric.utils import from_dgl
+    graph = from_dgl(graph)
+    graph.num_nodes = graph.edge_index.max() + 1
+    text = pd.read_csv(FILE_PATH + 'core/dataset/History/History.csv')
+    text = [f'Description: {cont}\n' for cont in text['text']]
+
+    return graph, text
+
+
+def load_tag_photo() -> Tuple[Data, List[str]]:
+    import dgl
+    graph = dgl.load_graphs(FILE_PATH + 'core/dataset/Photo/Photo.pt')[0][0]
+    graph = dgl.to_bidirected(graph)
+    from torch_geometric.utils import from_dgl
+    graph = from_dgl(graph)
+    graph.num_nodes = graph.edge_index.max() + 1
+    text = pd.read_csv(FILE_PATH + 'core/dataset/Photo/Photo.csv')
+    text = [f'Description: {cont}\n' for cont in text['text']]
+
+    return graph, text
 
 
 def parse_pubmed():
@@ -445,7 +477,7 @@ def load_tag_product() -> Tuple[Data, List[str]]:
 
 def load_graph_citationv8() -> Data:
     import dgl
-    from pdb import set_trace as st;
+    from pdb import set_trace as st
     st()
     graph = dgl.load_graphs(FILE_PATH + 'core/dataset/citationv8/Citation-2015.pt')[0][0]
     graph = dgl.to_bidirected(graph)
@@ -535,8 +567,6 @@ def extract_lcc_pwc_undir() -> Data:
     data_lcc = use_lcc(graph)
     root = '/hkfs/work/workspace/scratch/cc7738-benchmark_tag/TAPE_chen/'
     torch.save(data_lcc, root + 'core/dataset/pwc_large/pwc_tfidf_medium_undir.pt')
-    from pdb import set_trace as st;
-    st()
     return
 
 
@@ -553,7 +583,7 @@ if __name__ == '__main__':
     print(type(graph))
     print(type(text))
 
-    '''graph, _ = load_graph_cora(True)
+    graph, _ = load_graph_cora(True)
     # print(type(graph))
     graph, text = load_tag_cora()
     print(type(graph))
@@ -570,7 +600,7 @@ if __name__ == '__main__':
     graph = load_graph_pubmed()
     graph, text = load_tag_pubmed()
     print(type(graph))
-    print(type(text))'''
+    print(type(text))
 
     graph = load_graph_citationv8()
     print(type(graph))

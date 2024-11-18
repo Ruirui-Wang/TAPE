@@ -2,8 +2,14 @@ import numpy as np
 from tqdm import tqdm
 import torch
 from torch_geometric.loader import DataLoader
-import networkx as nx
+
 import os, sys
+import networkx 
+if networkx.__version__ == '2.6.3':
+    from networkx import from_scipy_sparse_matrix as from_scipy_sparse_array
+else:
+    from networkx import from_scipy_sparse_array
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 def sort_edge_index(edge_index):
@@ -132,7 +138,7 @@ def SymPPR(A, edge_index):
 def shortest_path(A, edge_index, remove=False):
 
     scores = []
-    G = nx.from_scipy_sparse_array(A)
+    G = from_scipy_sparse_array(A)
     count = 0
     print('remove: ', remove)
     for i in tqdm(range(edge_index.size(1))):
@@ -159,7 +165,7 @@ def shortest_path(A, edge_index, remove=False):
 def katz_apro(A, edge_index, beta=0.005, path_len=3, remove=False):
 
     scores = []
-    G = nx.from_scipy_sparse_array(A)
+    G = from_scipy_sparse_array(A)
     path_len = int(path_len)
     count = 0
     betas = np.zeros(path_len)

@@ -1,4 +1,5 @@
 import os, sys
+
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
 from typing import Dict
@@ -13,8 +14,8 @@ import torch
 from graphgps.utility.utils import random_sampling
 
 from torch_geometric import seed_everything
-from graphgps.utility.utils import set_cfg, get_git_repo_root_path, custom_set_run_dir, set_printing, run_loop_settings, \
-    create_optimizer, config_device, \
+from graphgps.utility.utils import set_cfg, get_git_repo_root_path, set_printing, \
+    config_device, \
     create_logger
 
 from data_utils.load import load_data_lp, load_graph_lp
@@ -22,7 +23,7 @@ from graphgps.utility.utils import save_run_results_to_csv
 from yacs.config import CfgNode as CN
 
 from transformers import AutoTokenizer, AutoModel, TrainingArguments, Trainer, IntervalStrategy
-from model import BertClassifier, BertClaInfModel,NCNClaInfModel,NCNClassifier,GCNClassifier,GCNClaInfModel
+from model import BertClassifier, BertClaInfModel, NCNClaInfModel, NCNClassifier, GCNClassifier, GCNClaInfModel
 from finetune_dataset import LinkPredictionDataset
 from utils import init_path, time_logger
 from ogb.linkproppred import Evaluator
@@ -33,16 +34,18 @@ from torch.utils.tensorboard import SummaryWriter
 from graph_embed.tune_utils import mvari_str2csv, save_parmet_tune
 from graphgps.score.custom_score import mlp_score, InnerProduct
 from graphgps.network.heart_gnn import GAT_Variant, GAE_forall, GCN_Variant, \
-                                SAGE_Variant, GIN_Variant, DGCNN
+    SAGE_Variant, GIN_Variant, DGCNN
+
 writer = SummaryWriter()
 
-# todo
 def compute_metrics(p):
     from sklearn.metrics import accuracy_score
     pred, labels = p
     pred = np.argmax(pred, axis=1)
     accuracy = accuracy_score(y_true=labels, y_pred=pred)
     return {"accuracy": accuracy}
+
+
 def gcn_dataset(data, splits):
     edge_index = data.edge_index
     data.num_nodes = data.x.shape[0]
@@ -53,7 +56,8 @@ def gcn_dataset(data, splits):
     # Use training + validation edges for inference on test set.
     val_edge_index = splits['valid']['pos_edge_label_index']
     full_edge_index = torch.cat([edge_index, val_edge_index], dim=-1)
-    data.full_adj_t = SparseTensor.from_edge_index(full_edge_index, sparse_sizes=(data.num_nodes, data.num_nodes)).coalesce()
+    data.full_adj_t = SparseTensor.from_edge_index(full_edge_index,
+                                                   sparse_sizes=(data.num_nodes, data.num_nodes)).coalesce()
     data.full_adj_t = data.full_adj_t.to_symmetric()
     return data
 
@@ -112,6 +116,7 @@ def create_GAE_model(cfg_model: CN,
 
     return GAE_forall(encoder=encoder, decoder=decoder)
 
+
 class LMTrainer():
     def __init__(self, cfg):
         self.dataset_name = cfg.dataset
@@ -130,6 +135,13 @@ class LMTrainer():
         self.eval_patience = cfg.lm.train.eval_patience
         self.grad_acc_steps = cfg.lm.train.grad_acc_steps
         self.lr = cfg.lm.train.lr
+        if self.decoder.model.type == 'NCNC':
+            self.lr = 0.001
+        elif self.decoder.model.type == 'MLP':
+            self.epochs = 24
+            self.batch_size = 9
+        elif self.decoder.model.type == 'GCN_Variant':
+            self.epochs = 70
         self.device = config_device(cfg).device
 
         self.use_gpt_str = "2" if cfg.lm.train.use_gpt else ""
@@ -166,9 +178,10 @@ class LMTrainer():
             [splits['test'].pos_edge_label_index, splits['test'].neg_edge_label_index], dim=1), torch.cat(
             [splits['test'].pos_edge_label, splits['test'].neg_edge_label], dim=0))
 
-
         # Define pretrained tokenizer and model
         bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
+        '''if 'mpnet' not in cfg.lm.model.name:
+            bert_model.gradient_checkpointing_enable()'''
         hidden_size = bert_model.config.hidden_size
         current_size = self.data.x.size(1)
 
@@ -177,8 +190,10 @@ class LMTrainer():
             self.data.x = F.pad(self.data.x, (0, padding_size), "constant", 0)
         elif current_size > hidden_size:
             self.data.x = self.data.x[:, :hidden_size]
+        
         for name, param in bert_model.named_parameters():
-            print(name)
+            if 'encoder.layer.11' in name and 'mpnet' in cfg.lm.model.name:
+                break
             if 'encoder.layer.5' in name and 'MiniLM' in cfg.lm.model.name:
                 break
             if 'layers.31' in name and 'Llama' in cfg.lm.model.name:
@@ -188,8 +203,9 @@ class LMTrainer():
             if 'encoder.layer.23' in name and 'e5-large' in cfg.lm.model.name:
                 break
             param.requires_grad = False
+
         if self.decoder.model.type == 'MLP':
-            self.model = BertClassifier(bert_model,cfg,feat_shrink=self.feat_shrink).to(self.device)
+            self.model = BertClassifier(bert_model, cfg, feat_shrink=self.feat_shrink).to(self.device)
         elif self.decoder.model.type == 'NCN' or self.decoder.model.type == 'NCNC':
             self.model = NCNClassifier(bert_model, cfg, self.data, self.data.edge_index).to(self.device)
         elif self.decoder.model.type == 'GCN_Variant':
@@ -203,10 +219,15 @@ class LMTrainer():
         self.tensorboard_writer = writer
         self.loggers = create_logger(args.repeat)
         self.print_logger = set_printing(cfg)
-
+        for n, p in self.model.named_parameters():
+            if p.requires_grad:
+                print(f'{n} is trainable.')
         self.trainable_params = sum(p.numel()
                                for p in self.model.parameters() if p.requires_grad)
+        print(f'Trainable params: {self.trainable_params}')
         self.name_tag = cfg.model.type + '-' + cfg.data.name + '-' + cfg.decoder.model.type
+        if self.decoder.model.type == 'GCN_Variant':
+            self.name_tag = cfg.model.type + '-' + cfg.data.name + '-' + args.model
         self.FILE_PATH = f'{get_git_repo_root_path()}/'
 
     @time_logger
@@ -238,7 +259,8 @@ class LMTrainer():
             fp16=True,
             dataloader_drop_last=True,
             max_grad_norm=10.0,
-            remove_unused_columns = False if self.decoder.model.type != 'MLP' else True
+            ddp_find_unused_parameters = True,
+            remove_unused_columns=False if self.decoder.model.type != 'MLP' else True
         )
         self.trainer = Trainer(
             model=self.model,
@@ -332,7 +354,7 @@ def parse_args() -> argparse.Namespace:
                         default=1000)
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='See graphgym/config.py for remaining options.')
-    parser.add_argument('--decoder',type=str, required=False)
+    parser.add_argument('--decoder', type=str, required=False)
     parser.add_argument('--model', type=str, required=False)
     return parser.parse_args()
 
@@ -347,6 +369,7 @@ if __name__ == '__main__':
         cfg.decoder = cfg_decoder
     else:
         from yacs.config import CfgNode as CN
+
         cfg.decoder = CN()
         cfg.decoder.model = CN()
         cfg.decoder.model.type = 'MLP'
@@ -362,7 +385,6 @@ if __name__ == '__main__':
     start_ft = time.time()
     for run_id in range(args.repeat):
         seed = run_id + args.start_seed
-        custom_set_run_dir(cfg, run_id)
         set_printing(cfg)
         print_logger = set_printing(cfg)
         cfg.seed = seed
@@ -371,10 +393,10 @@ if __name__ == '__main__':
         cfg = config_device(cfg)
         cfg.seed = seed
         trainer = LMTrainer(cfg)
-        trainer.train()
         start_inf = time.time()
-        result_test = trainer.eval_and_save(trainer.test_dataset)
+        trainer.train()
         eval_time = time.time() - start_inf
+        result_test = trainer.eval_and_save(trainer.test_dataset)
         result_valid = trainer.eval_and_save(trainer.val_dataset)
         result_train = trainer.eval_and_save(trainer.train_dataset)
         result_all = {
@@ -408,6 +430,5 @@ if __name__ == '__main__':
 
     print_logger.info(f"Results for: {cfg.model.type}")
     print_logger.info(f"Model Params: {trainer.trainable_params}")
-    print_logger.info(f"Inference time: {eval_time}")
-
+    print_logger.info(f"Training time: {eval_time}")
 

@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     r"""Parses the command line arguments."""
     parser = argparse.ArgumentParser(description='GraphGym')
     parser.add_argument('--cfg', dest='cfg_file', type=str, required=False,
-                        default='core/yamls/pwc_small/lms/minilm.yaml',
+                        default='core/yamls/cora/lms/minilm.yaml',
                         help='The configuration file path.')
     parser.add_argument('--data', type=str, required=False, default='pwc_small',
                         help='data name')
@@ -377,7 +377,7 @@ if __name__ == '__main__':
 
         cfg.model.params = params_count(model)
         print_logger.info(f"Results for: {cfg.model.type}")
-        print_logger.info(f"Embed Model Params: {emb_params}")
+        '''print_logger.info(f"Embed Model Params: {emb_params}")'''
         print_logger.info(f"Embed time: {emb_time}")
         print_logger.info(f'Num parameters: {cfg.model.params}')
         trainer.finalize()

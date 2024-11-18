@@ -51,7 +51,7 @@ model:
     hidden_channels: 32
     negative_slope: 0.1
     dropout: 0.1
-    num_layers: 2
+    num_layers: 1
     emb: False
     in_channels: None
     out_channels: 32
@@ -60,7 +60,7 @@ model:
     in_channels: None
     hidden_channels: 128
     out_channels: 128
-    num_layers: 3
+    num_layers: 1
     dropout: 0.1
     emb: False
 

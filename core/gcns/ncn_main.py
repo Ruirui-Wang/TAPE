@@ -10,6 +10,7 @@ import argparse
 import time
 import torch
 from functools import partial
+from graphgps.utility.utils import random_sampling
 
 from torch_geometric import seed_everything
 from torch_geometric.graphgym.utils.device import auto_select_device
@@ -37,7 +38,7 @@ def parse_args() -> argparse.Namespace:
                         default='core/yamls/cora/gcns/ncn.yaml',
                         help='The configuration file path.')
     parser.add_argument('--data', dest='data', type=str, required=True,
-                        default='pubmed',
+                        default='cora',
                         help='data name')
     parser.add_argument('--repeat', type=int, default=5,
                         help='The number of repeated jobs.')
@@ -57,6 +58,8 @@ def parse_args() -> argparse.Namespace:
                         help='Mark yaml as done after a job has finished.')
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='See graphgym/config.py for remaining options.')
+    parser.add_argument('--downsampling', type=float, default=1,
+                        help='Downsampling rate.')
     return parser.parse_args()
 
 def ncn_dataset(data, splits):
@@ -115,6 +118,7 @@ if __name__ == "__main__":
         cfg = config_device(cfg)
         start = time.time()
         splits, __, data = load_data_lp[cfg.data.name](cfg.data)
+        splits = random_sampling(splits, args.downsampling)
 
         data.edge_index = splits['train']['pos_edge_label_index']
         data = ncn_dataset(data, splits).to(cfg.device)

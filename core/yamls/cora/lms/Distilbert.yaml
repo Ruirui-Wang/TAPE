@@ -1,0 +1,79 @@
+dataset: cora
+device: 0
+lm:
+  model:
+    name: 'intfloat/e5-large-v2'
+  train:
+    att_dropout: 0.1
+    batch_size: 1
+    cla_dropout: 0.4
+    dropout: 0.3
+    epochs: 1
+    eval_patience: 10000
+    grad_acc_steps: 1
+    lr: 0.0001
+    use_gpt: False
+    warmup_epochs: 0.6
+    weight_decay: 0.0
+    pretrain_path: None
+    verbose: 1
+    if_freeze: 1
+    cl_dim: 128 # The dimension of the contrastive space
+    dropout: 0.1
+    att_dropout: 0.1
+    cla_dropout: 0.1 
+    grad_steps: 2
+    per_device_bsz: 15
+    
+opt:
+  out_dir: results
+  lr: 0.00002
+  weight_decay: 0.01
+  grad_acc_steps: 1
+  eq_batch_size: 36
+  wandb_on: True 
+  epochs: 5 
+  load_best_model_at_end: True
+  eval_patience: 20000
+  local_rank: -1
+  feat_shrink: 256
+
+runs: 5
+seed: 0
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+  device: 0
+  split_index: [0.8, 0.15, 0.05]
+
+out_dir: results
+metric_best: acc
+cfg_dest: ft-llama.yaml
+print: file
+accelerator: auto
+num_threads: 11
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+
+train:
+  mode: custom
+  batch_size: 256
+  eval_period: 1
+  epochs: 10000
+  device: 0
+  auto_resume: False
+
+model:
+  device: 0
+  type: ft-MLP-llama
+  hidden_channels: 128 #
+  num_layers: 3 #
+  dropout: 0.1

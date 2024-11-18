@@ -203,4 +203,5 @@ def get_metric_score(evaluator_hit, evaluator_mrr, pos_test_pred, neg_test_pred)
 
     result['AUC'] = (result_auc_test['AUC'])
     result['AP'] = (result_auc_test['AP'])
+    result['ACC'] = 0
     return result

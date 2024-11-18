@@ -12,7 +12,7 @@ run:
 
 train:
   mode: custom
-  batch_size: 1024 #
+  batch_size: 128 #
   eval_period: 1
   epochs: 100
   device: 0

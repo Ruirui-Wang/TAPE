@@ -77,6 +77,14 @@ class Struc2Vec():
         pd.to_pickle(self.sentences, self.temp_path + 'sentences.pkl')
         self._embeddings = {}
 
+    def count_parameters(self):
+        total_params = 0
+        
+        if self.w2v_model:
+            total_params += sum(np.prod(p.shape) for p in self.w2v_model.wv.vectors)
+
+        return total_params
+    
     def create_context_graph(self, max_num_layers, workers=1, verbose=0,):
 
         pair_distances = self._compute_structural_distance(
@@ -121,7 +129,7 @@ class Struc2Vec():
         pd.to_pickle(average_weight, self.temp_path + 'average_weight')
         pd.to_pickle(gamma, self.temp_path + 'gamma.pkl')
 
-    def train(self, embed_size=128, window_size=5, workers=3, iter=5):
+    def train(self, embed_size=128, window_size=5, workers=3, iter=5, epochs=1):
 
         # pd.read_pickle(self.temp_path+'walks.pkl')
         print("Learning representation...")
@@ -131,7 +139,8 @@ class Struc2Vec():
                          min_count=0, 
                          hs=1, 
                          sg=1, 
-                         workers=workers)
+                         workers=workers,
+                         epochs=epochs)
         print("Learning representation done!")
         self.w2v_model = model
 

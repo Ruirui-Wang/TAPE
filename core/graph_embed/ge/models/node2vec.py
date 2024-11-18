@@ -20,7 +20,7 @@ Reference:
 
 from gensim.models import Word2Vec
 import pandas as pd
-
+import numpy as np
 from ..walker import RandomWalker
 
 
@@ -39,6 +39,13 @@ class Node2Vec:
         self.sentences = self.walker.simulate_walks(
             num_walks=num_walks, walk_length=walk_length, workers=workers, verbose=1)
 
+    def count_parameters(self):
+        total_params = 0
+        
+        if self.w2v_model:
+            total_params += sum(np.prod(p.shape) for p in self.w2v_model.wv.vectors)
+
+        return total_params
     def train(self, embed_size=128, window_size=5, workers=3, iter=5, **kwargs):
 
         kwargs["sentences"] = self.sentences

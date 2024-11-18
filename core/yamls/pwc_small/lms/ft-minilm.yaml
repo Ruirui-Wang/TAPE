@@ -6,10 +6,11 @@ lm:
     name: sentence-transformers/all-MiniLM-L6-v2
   train:
     att_dropout: 0.1
-    batch_size: 9
+    batch_size: 256
+    cla_dropout: 0.4
     dropout: 0.3
-    epochs: 20
-    eval_patience: 1
+    epochs: 500
+    eval_patience: 100000000000
     grad_acc_steps: 4
     lr: 0.0001
     use_gpt: False
@@ -29,7 +30,7 @@ data:
 
 out_dir: results
 metric_best: acc
-cfg_dest: ft-deberta.yaml
+cfg_dest: ft-minilm.yaml
 print: file
 accelerator: auto
 num_threads: 11

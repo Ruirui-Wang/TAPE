@@ -232,7 +232,7 @@ class Trainer_Heart(Trainer):
         
         self.scheduler = scheduler
         self.tensorboard_writer = tensorboard_writer
-        
+
     def _train_heart(self):
 
         edge_index = self.train_data.edge_index

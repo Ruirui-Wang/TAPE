@@ -4,45 +4,52 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # Third-party library imports
 import numba
+import csv
+import wandb
 import numpy as np
 import scipy.sparse as sp
 from gensim.models import Word2Vec
 from sklearn.linear_model import LogisticRegression
 from IPython import embed
 from joblib import Parallel, delayed
+from torch.utils.tensorboard import SummaryWriter  # Импортируем TensorBoard
 
 # External module imports
 import torch
 import matplotlib.pyplot as plt
 from ogb.linkproppred import Evaluator
 from yacs.config import CfgNode as CN
-from torch_geometric.graphgym.cmd_args import parse_args
+# from torch_geometric.graphgym.cmd_args import parse_args
+
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.utils import to_scipy_sparse_matrix
 import itertools 
 import scipy.sparse as ssp
-from data_utils.load import load_data_lp as data_loader
+from data_utils.load import load_graph_lp as data_loader
 from heuristic.eval import get_metric_score
-from lpda.adjacency import plot_coo_matrix, construct_sparse_adj
-from core.graphgps.utility.utils import (
+from data_utils.load_data_lp import get_edge_split
+from data_utils.lcc import construct_sparse_adj
+from data_utils.graph_stats import plot_coo_matrix
+from graphgps.utility.utils import (
     get_git_repo_root_path,
     append_acc_to_excel,
-    append_mrr_to_excel
+    append_mrr_to_excel,
+    set_cfg,
+    parse_args
 )
 
 FILE_PATH = get_git_repo_root_path() + '/'
 
-data_loader = {
-    'cora': get_cora_casestudy,
-    'pubmed': get_pubmed_casestudy,
-    'arxiv_2023': get_raw_text_arxiv_2023
-}
+# # Change by data_loader_graph
+# data_loader = {
+#     'cora': get_cora_casestudy,
+#     'pubmed': get_pubmed_casestudy,
+#     'arxiv_2023': get_raw_text_arxiv_2023
+# }
 
-
-def set_cfg(args):
-    with open(args.cfg_file, "r") as f:
-        cfg = CN.load_cfg(f)
-    return cfg
+def set_cfg(file_path, cfg_file):
+    with open(file_path + cfg_file, "r") as f:
+        return CN.load_cfg(f)
 
 def partition_num(num, workers):
     if num % workers == 0:
@@ -57,7 +64,13 @@ def node2vec(workers,
             walks_per_node,
             num_neg_samples, 
             p, 
-            q, 
+            q,
+            window, 
+            epoch, 
+            sg, 
+            hs,
+            min_count,
+            shrink_window 
             ):
     """
     参数说明
@@ -96,13 +109,7 @@ def node2vec(workers,
                      negative=num_neg_samples, 
                      compute_loss=True,
                      workers = workers,
-                    #  epochs=epoch, 
-                    #  sg=sg, 
-                    #  hs=hs,
-                    #  window=window, 
-                    #  min_count=min_count, 
-                    #  shrink_windows=shrink_window
-                     )  
+                    )  
 
     embedding = model.wv.vectors[np.fromiter(map(int, model.wv.index_to_key), np.int32).argsort()] 
     
@@ -229,57 +236,33 @@ def random_choice(arr: np.int64, p):
     """
     return arr[np.searchsorted(np.cumsum(p), np.random.random(), side="right")]
 
-
-
-
-# main function 
-if __name__ == "__main__":
-
-    # args = parse_args()
-    # # # Load args file
-
-    # cfg = set_cfg(args)
-    # cfg.merge_from_list(args.opts)
+def eval_mrr_acc(cfg, writer=None) -> None:
+    if cfg.data.name == 'cora':
+        dataset, _ = data_loader[cfg.data.name](cfg)
+    elif cfg.data.name == 'pubmed':
+        dataset = data_loader[cfg.data.name](cfg)
+    elif cfg.data.name == 'arxiv_2023':
+        dataset = data_loader[cfg.data.name]()
     
-    # # Set Pytorch environment
-    # torch.set_num_threads(cfg.num_threads)
-
-    FILE_PATH = get_git_repo_root_path() + '/'
-
-    cfg_file = FILE_PATH + "core/configs/pubmed/node2vec.yaml"
-    # # Load args file
-    with open(cfg_file, "r") as f:
-        cfg = CN.load_cfg(f)
-
-    # Set Pytorch environment
-    torch.set_num_threads(cfg.num_threads)
-    
-    dataset, data_cited, splits = data_loader[cfg.data.name](cfg)
+    undirected = dataset.is_undirected()
+    splits = get_edge_split(dataset, undirected, cfg.data.device,
+                            cfg.data.split_index[1], cfg.data.split_index[2],
+                            cfg.data.include_negatives, cfg.data.split_labels)
     
     # ust test edge_index as full_A
     full_edge_index = splits['test'].edge_index
-    full_edge_weight = torch.ones(full_edge_index.size(1))
-    num_nodes = dataset._data.num_nodes
     
     m = construct_sparse_adj(full_edge_index)
     plot_coo_matrix(m, f'test_edge_index.png')
     
-    full_A = ssp.csr_matrix((full_edge_weight.view(-1), (full_edge_index[0], full_edge_index[1])), shape=(num_nodes, num_nodes)) 
-
-    evaluator_hit = Evaluator(name='ogbl-collab')
-    evaluator_mrr = Evaluator(name='ogbl-citation2')
-    
-    result_dict = {}
     # Access individual parameters
     walk_length = cfg.model.node2vec.walk_length
     walks_per_node = cfg.model.node2vec.num_walks
     p = cfg.model.node2vec.p
     q = cfg.model.node2vec.q
     workers = cfg.model.node2vec.workers
-    use_rejection_sampling = cfg.model.node2vec.use_rejection_sampling
     embed_size = cfg.model.node2vec.embed_size
-    ws = cfg.model.node2vec.window_size
-    iter = cfg.model.node2vec.iter
+    iter = cfg.model.node2vec.max_iter
     num_neg_samples = cfg.model.node2vec.num_neg_samples 
     window = cfg.model.node2vec.window
     min_count = cfg.model.node2vec.min_count
@@ -307,7 +290,14 @@ if __name__ == "__main__":
                     shrink_window=shrink_window)
     
     print(f"embedding size {embed.shape}")
-
+    root = os.path.join(FILE_PATH, f'results/graph_emb/{cfg.data.name}/{cfg.model.type}')
+    npz_file = os.path.join(root, f'{cfg.data.name}_embeddings.npz')
+    if isinstance(embed, dict):
+        embeddings_str_keys = {str(key): value for key, value in embed.items()}
+        np.savez(npz_file, **embeddings_str_keys)
+    else:
+        np.savez(npz_file, embeddings=embed)
+    
     # embedding method 
     X_train_index, y_train = splits['train'].edge_label_index.T, splits['train'].edge_label
     # dot product
@@ -331,7 +321,7 @@ if __name__ == "__main__":
     plt.plot(y_test, label='test')
     plt.savefig('node2vec_pred.png')
     
-    results_acc = {'node2vec_acc': acc}
+    results_acc = {f'{cfg.model.type}_acc': acc}
     pos_test_pred = torch.tensor(y_pred[y_test == 1])
     neg_test_pred = torch.tensor(y_pred[y_test == 0])
     
@@ -340,16 +330,84 @@ if __name__ == "__main__":
     pos_pred = pos_test_pred[:, 1]
     neg_pred = neg_test_pred[:, 1]
     result_mrr = get_metric_score(evaluator_hit, evaluator_mrr, pos_pred, neg_pred)
-    results_mrr = {'node2vec_mrr': result_mrr}
+    result_mrr['ACC'] = acc
+    results_mrr = {f'{cfg.model.type}_mrr': result_mrr}
     print(results_acc, results_mrr)
     
 
-    root = FILE_PATH + 'results'
-    acc_file = root + f'/{cfg.data.name}_acc.csv'
-    mrr_file = root +  f'/{cfg.data.name}_mrr.csv'
-    if not os.path.exists(root):
-        os.makedirs(root, exist_ok=True)
-    append_acc_to_excel(results_acc, acc_file, cfg.data.name)
-    append_mrr_to_excel(results_mrr, mrr_file)
+    # Save the results
+    root = os.path.join(FILE_PATH, f'results/graph_emb/{cfg.data.name}/{cfg.model.type}', run_name)
+    os.makedirs(root, exist_ok=True)
+    acc_file = os.path.join(root, f'{cfg.data.name}_acc.csv')
+    mrr_file = os.path.join(root, f'{cfg.data.name}_mrr.csv')
     
+    run_id = wandb.util.generate_id()
+    append_acc_to_excel(run_id, results_acc, acc_file, cfg.data.name, cfg.model.type)
+    append_mrr_to_excel(run_id, results_mrr, mrr_file, cfg.data.name, cfg.model.type)
+    
+    return result_mrr
 
+
+
+# main function 
+if __name__ == "__main__":
+
+    args = parse_args()
+    # Load args file
+
+    cfg = set_cfg(FILE_PATH, args.cfg)
+    seeds = [1, 2, 3, 4, 5]
+
+    # Set Pytorch environment
+    torch.set_num_threads(cfg.num_threads)
+    mrr_results = []
+    for seed in seeds:
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        
+        run_name = f'seed_{seed}'
+        writer = SummaryWriter(log_dir=os.path.join(FILE_PATH, 'runs', cfg.data.name, run_name))
+        
+        results_mrr = eval_mrr_acc(cfg, writer=writer)
+        
+        mrr_results.append(results_mrr)
+        writer.close()
+    
+    columns = {key: [d[key] for d in mrr_results] for key in mrr_results[0]}
+
+    means = {key: np.mean(values) for key, values in columns.items()}
+    variances = {key: np.var(values, ddof=1) for key, values in columns.items()}
+
+    root = os.path.join(FILE_PATH, f'results/graph_emb/{cfg.data.name}/{cfg.model.type}')
+    mrr_file = os.path.join(root, f'{cfg.data.name}_gr_emb_res.csv')
+    
+    run_id = wandb.util.generate_id()
+    with open(mrr_file, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Metric', 'Hits@1', 'Hits@3', 'Hits@10', 'Hits@20', 'Hits@50', 'Hits@100', 'MRR', 
+                        'mrr_hit1', 'mrr_hit3', 'mrr_hit10', 'mrr_hit20', 'mrr_hit50', 'mrr_hit100', 'AUC', 'AP', 'ACC'])
+        
+        keys = ["Hits@1", "Hits@3", "Hits@10", "Hits@20", "Hits@50", "Hits@100", "MRR", 
+        "mrr_hit1", "mrr_hit3", "mrr_hit10", "mrr_hit20", "mrr_hit50", "mrr_hit100", 
+        "AUC", "AP", "ACC"]
+
+        row = [f"{run_id}_{cfg.data.name}"] + [f'{means.get(key, 0) * 100:.2f} ± {variances.get(key, 0) * 100:.2f}' for key in keys]
+
+        writer.writerow(row)
+    
+    # file_path = os.path.join(FILE_PATH, f'results/graph_emb/{cfg.data.name}/{cfg.model.type}/{cfg.data.name}_model_parameters.csv')
+    # with open(file_path, mode='r', newline='') as file:
+    #     reader = csv.reader(file)
+    #     header = next(reader)
+
+    #     data = []
+    #     for row in reader:
+    #         data.append([float(value) for value in row[1:]])
+
+    #     rows = np.array(data)
+
+    # means = np.mean(rows, axis=0)
+    # mean_row = ['Mean'] + [f'{mean:.6f}' for mean in means]
+    # with open(file_path, mode='a', newline='') as file:
+    #     writer = csv.writer(file)
+    #     writer.writerow(mean_row)

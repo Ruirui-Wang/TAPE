@@ -60,7 +60,7 @@ model:
     in_channels: None
     hidden_channels: 64
     out_channels: 128
-    num_layers: 3
+    num_layers: 1
     dropout: 0.1
     emb: False
 

@@ -3,6 +3,7 @@ import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import yaml
 import torch
+import csv
 from sklearn.linear_model import LogisticRegression
 from torch_geometric.utils import to_scipy_sparse_matrix
 from torch_geometric.graphgym.config import cfg
@@ -43,6 +44,16 @@ def initialize_config(file_path, args):
     
     return cfg
 
+def save_parameters(root, model, start, end, epochs):
+    file_path = root + '/model_parameters.csv'
+    file_exists = os.path.exists(file_path)
+    with open(file_path, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        if not file_exists:
+            writer.writerow(["Model Name", "Total num", "Time 1 epoch"])
+        total_params = model.count_parameters()
+        model_name = model.__class__.__name__
+        writer.writerow([model_name, total_params, (end - start) / epochs])
 # TODO how to save wandb files 
 
 def parse_args() -> argparse.Namespace:
@@ -273,9 +284,6 @@ def convert_to_float(metrics: Dict[str, str]) -> Dict[str, float]:
 
 
 def mvari_str2csv(name_tag, metrics, root):
-    # if not exists save the first row
-    # one for new string line 
-    # another for new highest value line
 
     first_value_type = type(next(iter(metrics.values())))
     if all(isinstance(value, first_value_type) for value in metrics.values()):

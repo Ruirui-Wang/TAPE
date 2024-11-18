@@ -1,0 +1,59 @@
+out_dir: results
+metric_best: acc
+cfg_dest: neognn.yaml
+print: file
+seed: 0
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+
+train:
+  mode: custom
+  batch_size: 256 #
+  gnn_batch_size: 4096 #
+  eval_period: 1
+  epochs: 500
+  device: 0
+  auto_resume: False
+  final_eval: False
+  finetune: False
+
+model:
+  type: NeoGNN
+  out_channels: 32
+  in_channels: 1433
+  hidden_channels: 256 #
+  num_layers: 4 #
+  mlp_num_layers: 3 #
+  dropout: 0.2 #
+  f_edge_dim: 8 # 32 #
+  f_node_dim: 128 #
+  g_phi_dim: 128 #
+  beta: 0.1
+
+num_threads: 11
+
+wandb:
+  use: True
+  project: gtblueprint
+  name_tag: neognn-cora
+
+
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+  num_features:  1433
+  device: 0
+  split_index: [0.8, 0.15, 0.05]
+
+optimizer:
+  type: adam
+  lr: 0.0001 #
+  weight_decay: 0.0005
