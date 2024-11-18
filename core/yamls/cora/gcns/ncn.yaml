@@ -31,9 +31,9 @@ model:
   nnlayers: 3
   ln: True
   lnnn: True
-  res: False
+  res: True
   jk: True
-  hiddim: 256 #
+  hiddim: 1024 #
   gnndp: 0.05 #
   xdp: 0.7 #
   tdp: 0.2 #
