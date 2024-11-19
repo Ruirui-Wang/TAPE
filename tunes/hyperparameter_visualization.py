@@ -34,7 +34,10 @@ def calculate_correlation_with_metric(data, metric_column='MRR'):
 
 # Load the dataset
 root = '/hkfs/work/workspace/scratch/cc7738-rebuttal/TAPE_test/TAPE/tunes/'
-for f in ['groups_cora_NCN_e5-large.csv', 'groups_cora_NCN_mpnet.csv', 'groups_cora_NCN_MiniLM.csv']:
+group1 = ['groups_cora_NCN_mpnet.csv', 'groups_cora_NCN_MiniLM.csv', 'groups_cora_NCN_e5-large.csv']
+group2 = ['group2_cora_NCN_mpnet.csv', 'group2_cora_NCN_MiniLM.csv']
+
+for f in group2:
     data = pd.read_csv(f'{root}{f}')
 
 
@@ -43,4 +46,4 @@ for f in ['groups_cora_NCN_e5-large.csv', 'groups_cora_NCN_mpnet.csv', 'groups_c
 
 
     best_params = find_best_params(data, metric_column='MRR')
-    print(best_params[:4], best_params['MRR'])
+    print(best_params[:5], best_params['MRR'])

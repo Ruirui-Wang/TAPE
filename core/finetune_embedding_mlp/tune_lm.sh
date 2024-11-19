@@ -32,9 +32,33 @@ module load compiler/gnu/12
 # multi-gpu distributed training TODO
 
 # report 
-# CUDA_LAUNCH_BLOCKING=1 python core/finetune_embedding_mlp/lm_trainer_tune.py --cfg core/yamls/cora/lms/ft-minilm.yaml --decoder core/yamls/cora/gcns/ncn.yaml
-# CUDA_LAUNCH_BLOCKING=1 python core/finetune_embedding_mlp/lm_trainer_tune.py --cfg core/yamls/cora/lms/ft-e5-large.yaml --decoder core/yamls/cora/gcns/ncn.yaml
-# CUDA_LAUNCH_BLOCKING=1 python core/finetune_embedding_mlp/lm_trainer_tune.py --cfg core/yamls/cora/lms/ft-mpnet.yaml --decoder core/yamls/cora/gcns/ncn.yaml
+
+CUDA_LAUNCH_BLOCKING=1 WANDB_DISABLED=True python core/finetune_embedding_mlp/lm_trainer_tune.py --cfg core/yamls/cora/lms/ft-minilm.yaml --decoder core/yamls/cora/gcns/ncn.yaml
+CUDA_LAUNCH_BLOCKING=1 WANDB_DISABLED=True python core/finetune_embedding_mlp/lm_trainer_tune.py --cfg core/yamls/cora/lms/ft-e5-large.yaml --decoder core/yamls/cora/gcns/ncn.yaml
+CUDA_LAUNCH_BLOCKING=1 WANDB_DISABLED=True python core/finetune_embedding_mlp/lm_trainer_tune.py --cfg core/yamls/cora/lms/ft-mpnet.yaml --decoder core/yamls/cora/gcns/ncn.yaml
 
 
 CUDA_LAUNCH_BLOCKING=1 python core/finetune_embedding_mlp/lm_trainer_tune.py --cfg core/yamls/cora/lms/ft-mpnet.yaml --decoder core/yamls/cora/gcns/ncnc.yaml
+CUDA_LAUNCH_BLOCKING=1 python core/finetune_embedding_mlp/lm_trainer_tune.py --cfg core/yamls/cora/lms/ft-minilm.yaml --decoder core/yamls/cora/gcns/ncnc.yaml
+CUDA_LAUNCH_BLOCKING=1 python core/finetune_embedding_mlp/lm_trainer_tune.py --cfg core/yamls/cora/lms/ft-e5-large.yaml --decoder core/yamls/cora/gcns/ncnc.yaml
+
+# round 2
+CUDA_LAUNCH_BLOCKING=1 python core/finetune_embedding_mlp/tune2.py --cfg core/yamls/cora/lms/ft-mpnet.yaml --decoder core/yamls/cora/gcns/ncn.yaml
+
+srun --nodes=1 --ntasks=1 --gres=gpu:1 
+CUDA_LAUNCH_BLOCKING=1 WANDB_DISABLED=True python core/finetune_embedding_mlp/tune2.py --cfg core/yamls/cora/lms/ft-mpnet.yaml --decoder core/yamls/cora/gcns/ncn.yaml
+
+srun --nodes=1 --ntasks=1 --gres=gpu:1 python core/finetune_embedding_mlp/tune2.py --cfg core/yamls/cora/lms/ft-minilm.yaml --decoder core/yamls/cora/gcns/ncn.yaml
+
+srun --nodes=1 --ntasks=1 --gres=gpu:1 
+python core/finetune_embedding_mlp/tune2.py --cfg core/yamls/cora/lms/ft-e5-large.yaml --decoder core/yamls/cora/gcns/ncn.yaml
+
+
+# round 3
+CUDA_LAUNCH_BLOCKING=1 WANDB_DISABLED=True python core/finetune_embedding_mlp/tune3.py --cfg core/yamls/cora/lms/ft-mpnet.yaml --decoder core/yamls/cora/gcns/ncn.yaml
+CUDA_LAUNCH_BLOCKING=1 WANDB_DISABLED=True python core/finetune_embedding_mlp/tune3.py --cfg core/yamls/cora/lms/ft-minilm.yaml  --decoder core/yamls/cora/gcns/ncn.yaml
+CUDA_LAUNCH_BLOCKING=1 WANDB_DISABLED=True python core/finetune_embedding_mlp/tune3.py --cfg core/yamls/cora/lms/ft-e5-large.yaml --decoder core/yamls/cora/gcns/ncn.yaml
+
+
+srun --nodes=1 --ntasks=1 --gres=gpu:1  CUDA_LAUNCH_BLOCKING=1 WANDB_DISABLED=True python core/finetune_embedding_mlp/tune3.py --cfg core/yamls/cora/lms/ft-minilm.yaml  --decoder core/yamls/cora/gcns/ncn.yaml
+srun --nodes=1 --ntasks=1 --gres=gpu:1  CUDA_LAUNCH_BLOCKING=1 WANDB_DISABLED=True python core/finetune_embedding_mlp/tune3.py --cfg core/yamls/cora/lms/ft-e5-large.yaml --decoder core/yamls/cora/gcns/ncn.yaml
