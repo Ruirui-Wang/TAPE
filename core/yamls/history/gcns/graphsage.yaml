@@ -1,0 +1,51 @@
+# line.yaml
+
+out_dir: results
+metric_best: acc
+cfg_dest: graphsage.yaml
+print: file
+seed: 0
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+wandb:
+  use: True
+  project: gtblueprint
+  name_tag: graphsage-cora-origin
+
+optimizer:
+  type: adam
+  base_lr: 0.01
+  weight_decay: 0.0005
+
+
+
+train:
+  mode: custom
+  batch_size: 32   
+  eval_period: 1
+  epochs: 2000
+  device: 0
+  auto_resume: False
+  finetune: False
+  
+model:
+  type: GraphSage
+  in_channels: 12
+  out_channels: 16
+  hidden_channels: None
+    
+num_threads: 11
+
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+  num_features:  1433
+  split_index: [0.8, 0.15, 0.05]

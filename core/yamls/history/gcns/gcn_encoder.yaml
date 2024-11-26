@@ -1,0 +1,51 @@
+# line.yaml
+
+out_dir: results
+metric_best: acc
+cfg_dest: gcn_encoder.yaml
+print: file
+run_multiple_splits: None # Without this parapere I got error: "AttributeError: run_multiple_splits"
+seed: 0                   # Without this parapere I got error: "AttributeError: seed"
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+wandb:
+  use: True
+  project: gtblueprint
+  name_tag: gae-cora-origin
+
+train:
+  mode: custom
+  auto_resume: False      # Without this parapere I got error: "AttributeError: auto_resume"
+  batch_size: 32   
+  eval_period: 1
+  epochs: 2000
+  device: 0
+  auto_resume: False
+
+model:
+  #type: GraphSage # Maybe here should be GCN? 
+  type: GCNEncode
+  in_channels: 12
+  out_channels: 16
+  # hidden_channels: None # Very bad if this parameter None, because we got error about type conflicts
+  hidden_channels: 4 # I think I should play with this hyperparameter
+    
+num_threads: 11
+
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+  num_features:  1433
+
+optimizer:
+  type: adam
+  base_lr: 0.01
+  weight_decay: 0.0005

@@ -1,0 +1,29 @@
+# struc2vec_args.yaml
+
+out_dir: results
+metric_best: f1
+wandb:
+  use: True
+  project: gtblueprint
+
+train:
+  mode: custom
+  batch_size: 32   
+  eval_period: 1
+model:
+  type: node_sim
+  node_sim: dot
+  MLP:
+    max_iter: 100
+
+num_threads: 11
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: False
+
+
+    

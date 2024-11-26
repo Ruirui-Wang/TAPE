@@ -1,0 +1,164 @@
+# line.yaml
+
+out_dir: results
+metric_best: [Hits@10, MRR, AUC]
+cfg_dest: heart_gnn_unified.yaml
+print: file
+seed: 0
+accelerator: auto
+
+wandb:
+  use: True
+  project: gtblueprint
+  name_tag: Tune  # tune or train
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+
+
+train:
+  mode: custom
+  batch_size: 1024
+  eval_period: 1
+  epochs: 500
+  device: 0
+  use_valedges_as_input: True
+  lr: 0.001
+  l2: 0.0
+  runs: 10 
+  kill_cnt: 30
+  auto_resume: False
+  finetune : False
+
+model:
+  type: GCN_Variant
+  sampler: gsaint
+
+  batch_size_sampler: 1024
+  GCN_Variant: 
+    in_channels: None
+    hidden_channels: 32
+    out_channels: 32
+    negative_slope: 0.1
+    dropout: 0.1
+    num_layers: 1
+
+  GAT_Variant:
+    heads: 4
+    hidden_channels: 32
+    negative_slope: 0.1
+    dropout: 0.1
+    num_layers: 1
+    emb: False
+    in_channels: None
+    out_channels: 32
+
+  SAGE_Variant:
+    in_channels: None
+    hidden_channels: 64
+    out_channels: 128
+    num_layers: 3
+    dropout: 0.1
+    emb: False
+
+  GIN_Variant:
+    out_channels: 64
+    hidden_channels: 64
+    dropout: 0.1
+    emb: False
+    num_layers: 1
+    mlp_layer: 1
+
+sampler:
+  type: gsaint
+  gsaint:
+    num_steps: 30
+    sample_coverage: 100
+    walk_length: 20
+    batch_size: 2048
+
+score:
+  type: mlp_score
+
+  GAT_Variant:
+    score_in_channels: 32 #must be same as out_channels of GAT
+    score_hidden_channels: 64
+    score_num_layers_predictor: 3
+    score_dropout: 0.1
+    score_out_channels: 1
+    score_gin_mlp_layer: 2
+    score_cat_node_feat_mf: False
+    score_cat_n2v_feat: False
+    score_num_layers: 3
+    product: dot
+
+  GCN_Variant:
+    score_in_channels: 32
+    score_hidden_channels: 64
+    score_num_layers_predictor: 3
+    score_dropout: 0.1
+    score_out_channels: 1
+    score_gin_mlp_layer: 2
+    score_cat_node_feat_mf: False
+    score_cat_n2v_feat: False
+    score_num_layers: 3
+    product: inner
+
+
+  GIN_Variant:
+    score_in_channels: 64
+    score_hidden_channels: 64
+    score_num_layers_predictor: 3
+    score_dropout: 0.1
+    score_out_channels: 1
+    score_gin_mlp_layer: 2
+    score_cat_node_feat_mf: False
+    score_cat_n2v_feat: False
+    score_num_layers: 3
+    product: dot
+
+  SAGE_Variant:
+    score_in_channels: 128
+    score_hidden_channels: 64
+    score_num_layers_predictor: 3
+    score_dropout: 0.1
+    score_out_channels: 1
+    score_gin_mlp_layer: 2
+    score_cat_node_feat_mf: False
+    score_cat_n2v_feat: False
+    score_num_layers: 3
+    product: dot
+
+
+num_threads: 11
+
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+  num_features:  1433
+  device: 1
+  split_index: [0.8, 0.15, 0.05]
+
+optimizer:
+  type: adam
+  base_lr: 0.015
+  weight_decay: 0.0005
+
+
+sampler:
+  gsaint:
+    sampler_batch_size: 1024
+    walk_length: 10
+    num_steps: 10
+    sample_coverage: 100
+
+
+save:
+  output_dir: './'

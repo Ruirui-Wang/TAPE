@@ -1,0 +1,75 @@
+
+out_dir: results
+metric_best: acc
+cfg_dest: gae.yaml
+print: file
+seed: 0
+accelerator: auto
+run_dir: runs
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+
+wandb:
+  use: True
+  project: gtblueprint
+  name_tag: tfidf-cora-origin
+
+train:
+  mode: custom
+  batch_size: 4096
+  eval_period: 1
+  epochs: 10000
+  device: 'cpu'
+  auto_resume: False
+  final_eval: False
+  finetune: False
+
+embedder:
+  type: TFIDF
+  max_features: 1000
+  ngram_range: (1, 1)
+  max_df: 0.8
+  min_df: 0.1
+  norm: l2
+  use_idf: True
+  smooth_idf: True
+  sublinear_tf: False
+
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+  num_features:  1433
+  device: 0
+  split_index: [0.8, 0.15, 0.05]
+  method: 'tfidf'
+
+model:
+  device: 0
+  type: MLP-tfidf
+  hidden_channels: 128 #
+  num_layers: 3 #
+  dropout: 0.1
+
+decoder:
+  type: GAE
+  out_channels: 32
+  in_channels: None
+  hidden_channels: 32
+  out_channels: 1
+  num_layers: 3
+  dropout: 0.1
+
+num_threads: 11
+
+optimizer:
+  type: adam
+  base_lr: 0.0001
+  weight_decay: 0.0005

@@ -1,0 +1,36 @@
+# for gsaint.py
+method: random # try "bayes" later
+metric:
+  goal: maximize
+  name: score
+parameters:
+  out_channels: # Model parameters
+<<<<<<< HEAD
+    values: [10, 14, 16]
+  hidden_channels:
+    values: [4, 8, 16]
+  lr:
+    values: [0.1, 0.01, 0.001, 0.0001]
+  batch_size: # RandomWalk parameters
+    values: [8, 16, 32, 64, 128, 256]
+=======
+    values: [32, 64]
+  hidden_channels:
+    values: [32]
+  lr:
+    values: [0.1, 0.01, 0.001, 0.0001]
+  batch_size:
+    values: [1024, 2048, 4096]
+  batch_size_sampler: # RandomWalk parameters
+    values: [32, 64, 128, 256]
+<<<<<<< HEAD
+>>>>>>> ea92b90a2dc71dd378457a0877c2aab641119c5e
+=======
+>>>>>>> d987485649d900ef25fb5bb36d043b11b293f164
+>>>>>>> Wektor607-gcn_wb
+  walk_length: 
+    values: [10, 20, 50, 100, 150, 200]
+  num_steps:
+    values: [10, 20, 30]
+  sample_coverage:
+    values: [50, 100, 150, 200, 250]

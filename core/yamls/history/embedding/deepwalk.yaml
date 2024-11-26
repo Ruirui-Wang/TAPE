@@ -1,0 +1,53 @@
+# node2vec_args.yaml
+
+out_dir: results
+metric_best: f1
+wandb:
+  use: True
+  project: gtblueprint
+
+train:
+  mode: custom
+  batch_size: 32   
+  eval_period: 1
+  ckpt_period: 100
+model:
+  type: node2vec
+  node2vec:
+    walk_length: 10
+    num_walks: 80
+    p: 2.5
+    q: 1.1
+    workers: 10
+    use_rejection_sampling: 0
+    embed_size: 64
+    window_size: 5
+    max_iter: 100
+    num_neg_samples: 1 
+    walks_per_node: 20
+    window: 5
+    min_count: 5
+    shrink_window: True
+    epoch: 5
+    sg: 0
+    hs: 0
+
+
+num_threads: 11
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: False
+
+optim:
+  optimizer: adam
+  weight_decay: 0.0
+  base_lr: 0.0005
+  max_epoch: 500
+  scheduler: reduce_on_plateau
+  reduce_factor: 0.5
+  schedule_patience: 10
+  min_lr: 1e-5

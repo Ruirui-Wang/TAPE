@@ -1,6 +1,6 @@
 out_dir: results
 metric_best: acc
-cfg_dest: ncnc.yaml
+cfg_dest: ncn.yaml
 print: file
 seed: 0
 
@@ -14,7 +14,7 @@ train:
   mode: custom
   batch_size: 1024 #
   eval_period: 1
-  epochs: None
+  epochs: 100
   device: 0
   auto_resume: False
   final_eval: False
@@ -23,7 +23,7 @@ train:
 
 model:
   model: puregcn
-  type: NCNC
+  type: NCN
   out_channels: 32
   in_channels: 1433
   hidden_channels: 256
@@ -52,11 +52,11 @@ num_threads: 11
 wandb:
   use: True
   project: gtblueprint
-  name_tag: ncnc-photo
+  name_tag: ncn-history
 
 
 data:
-  name: photo
+  name: history
   undirected: True
   include_negatives: True
   val_pct: 0.15

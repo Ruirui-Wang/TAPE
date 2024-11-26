@@ -1,6 +1,6 @@
 out_dir: results
 metric_best: acc
-cfg_dest: ncnc.yaml
+cfg_dest: neognn.yaml
 print: file
 seed: 0
 
@@ -12,51 +12,38 @@ run:
 
 train:
   mode: custom
-  batch_size: 1024 #
+  batch_size: 256 #
+  gnn_batch_size: 4096 #
   eval_period: 1
-  epochs: None
+  epochs: 500
   device: 0
   auto_resume: False
   final_eval: False
   finetune: False
-  dynamic_train: False
 
 model:
-  model: puregcn
-  type: NCNC
+  type: NeoGNN
   out_channels: 32
   in_channels: 1433
-  hidden_channels: 256
-  mplayers: 1
-  nnlayers: 3
-  ln: True
-  lnnn: True
-  res: False
-  jk: True
-  hiddim: 256 #
-  gnndp: 0.05 #
-  xdp: 0.7 #
-  tdp: 0.2 #
-  gnnedp: 0.0 #
-  predp: 0.05 #
-  preedp: 0.4 #
-
-
-  probscale: 5.0 #
-  proboffset: 3.0 #
-  pt: 0.05 #
-
+  hidden_channels: 256 #
+  num_layers: 4 #
+  mlp_num_layers: 3 #
+  dropout: 0.2 #
+  f_edge_dim: 8 # 32 #
+  f_node_dim: 128 #
+  g_phi_dim: 128 #
+  beta: 0.1
 
 num_threads: 11
 
 wandb:
   use: True
   project: gtblueprint
-  name_tag: ncnc-photo
+  name_tag: neognn-cora
 
 
 data:
-  name: photo
+  name: cora
   undirected: True
   include_negatives: True
   val_pct: 0.15
@@ -65,11 +52,8 @@ data:
   num_features:  1433
   device: 0
   split_index: [0.8, 0.15, 0.05]
-  max_x: -1
-  use_valedges_as_input: True
 
 optimizer:
   type: adam
-  gnnlr: 0.005 #
-  prelr: 0.005 #
+  lr: 0.0001 #
   weight_decay: 0.0005

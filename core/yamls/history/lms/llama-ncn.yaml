@@ -1,6 +1,6 @@
 out_dir: results
 metric_best: acc
-cfg_dest: ncnc.yaml
+cfg_dest: llama-ncn.yaml
 print: file
 seed: 0
 
@@ -12,9 +12,9 @@ run:
 
 train:
   mode: custom
-  batch_size: 1024 #
+  batch_size: 512 #
   eval_period: 1
-  epochs: None
+  epochs: 100
   device: 0
   auto_resume: False
   final_eval: False
@@ -23,10 +23,10 @@ train:
 
 model:
   model: puregcn
-  type: NCNC
+  type: NCN
   out_channels: 32
   in_channels: 1433
-  hidden_channels: 256
+  hidden_channels: 64
   mplayers: 1
   nnlayers: 3
   ln: True
@@ -34,12 +34,12 @@ model:
   res: False
   jk: True
   hiddim: 256 #
-  gnndp: 0.05 #
-  xdp: 0.7 #
-  tdp: 0.2 #
+  gnndp: 0.0 #
+  xdp: 0.0 #
+  tdp: 0.0 #
   gnnedp: 0.0 #
-  predp: 0.05 #
-  preedp: 0.4 #
+  predp: 0.0 #
+  preedp: 0.0 #
 
 
   probscale: 5.0 #
@@ -52,11 +52,11 @@ num_threads: 11
 wandb:
   use: True
   project: gtblueprint
-  name_tag: ncnc-photo
+  name_tag: llama-ncn-cora
 
 
 data:
-  name: photo
+  name: cora
   undirected: True
   include_negatives: True
   val_pct: 0.15
@@ -70,6 +70,6 @@ data:
 
 optimizer:
   type: adam
-  gnnlr: 0.005 #
-  prelr: 0.005 #
+  gnnlr: 0.0001 #
+  prelr: 0.001 #
   weight_decay: 0.0005

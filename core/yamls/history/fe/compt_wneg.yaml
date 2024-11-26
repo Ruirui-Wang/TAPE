@@ -1,0 +1,18 @@
+train:
+  mode: custom
+  batch_size: 32   
+  eval_period: 1
+  loss: mse_w_neg
+
+model:
+  type: compt_wneg
+
+num_threads: 11
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: False
+

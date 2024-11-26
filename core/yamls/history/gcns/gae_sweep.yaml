@@ -1,0 +1,10 @@
+# for gae.py
+method: bayes
+metric:
+  goal: maximize
+  name: score
+parameters:
+  out_channels:
+    values: [10, 14, 16]
+  hidden_channels:
+    values: [4, 8, 16, 32]

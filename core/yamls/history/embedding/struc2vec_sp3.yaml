@@ -1,0 +1,14 @@
+method: bayes
+metric:
+  goal: maximize
+  name: score
+parameters:
+  wl:
+    values: [10, 20, 30]
+  num_walks:
+    values: [40, 50, 60, 70]
+  embed_size:
+    values: [20, 22, 24, 26, 28]
+  window_size:
+    values: [9, 10, 11, 12, 13]
+

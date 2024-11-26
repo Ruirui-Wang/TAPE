@@ -1,0 +1,81 @@
+# line.yaml
+
+out_dir: results
+metric_best: acc
+cfg_dest: gsaint.yaml
+print: file
+seed: 0
+
+run:
+  seed: 0
+  num_threads: 11
+  multiple_splits: None
+
+wandb:
+  use: True
+  project: gtblueprint
+  name_tag: gsaint-cora-origin
+  
+train:
+  mode: custom
+<<<<<<< HEAD
+  batch_size: 32   
+  eval_period: 1
+  epochs: 2000
+  device: 0
+  lr: 0.01 # {0.1, 0.01, 0.001, 0.0001}
+=======
+  batch_size: 2048
+  eval_period: 1
+  epochs: 200 #10000
+  device: 1
+  use_valedges_as_input: True
+  lr: 0.01 # {0.1, 0.01, 0.001, 0.0001}
+  l2: 0.0
+>>>>>>> d987485649d900ef25fb5bb36d043b11b293f164
+  auto_resume: False
+  finetune: False
+
+  
+model:
+<<<<<<< HEAD
+  type: gsaint_gae # Here you can paste different name of model
+  out_channels: 16
+  hidden_channels: 8  # {128, 256, 512}
+  in_channels: 1433
+=======
+  type: GAE # Here you can paste different name of model
+  sampler: gsaint #None 
+  out_channels: 32
+  heads: 4
+  hidden_channels: 32  # {128, 256, 512}
+  in_channels: 1433
+  batch_size_sampler: 256
+  walk_length: 50
+  num_steps: 20
+  sample_coverage: 100
+>>>>>>> d987485649d900ef25fb5bb36d043b11b293f164
+
+num_threads: 11
+
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  split_labels: True
+<<<<<<< HEAD
+  num_features:  1433
+  device: 0
+=======
+  num_features: 1433
+  device: 1
+>>>>>>> d987485649d900ef25fb5bb36d043b11b293f164
+  split_index: [0.8, 0.15, 0.05]
+
+optimizer:
+  type: adam
+  base_lr: 0.01
+  weight_decay: 0.0005
+

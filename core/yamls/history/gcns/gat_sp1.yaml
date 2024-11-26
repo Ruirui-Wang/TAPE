@@ -1,0 +1,24 @@
+method: bayes
+metric:
+  goal: maximize
+  name: score
+parameters:
+  in_channels:
+    values: [10, 20, 30]
+  out_channels:
+    values: [1433]
+  heads:
+    values: [1, 4, 8, 16, 32]
+  hidden_channels:
+    values: [5, 7, 9]
+  negative_slope:
+    values: [0, 0.2, 0.1]
+  dropout:
+    values: [0, 0.1]
+  num_layers: 
+    values: [1, 2, 3]
+  batch_size:
+    values: [256, 128, 64]
+  lr:
+    values: [0.001, 0.01]
+

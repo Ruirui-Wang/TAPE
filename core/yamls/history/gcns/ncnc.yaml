@@ -14,7 +14,7 @@ train:
   mode: custom
   batch_size: 1024 #
   eval_period: 1
-  epochs: None
+  epochs: 100
   device: 0
   auto_resume: False
   final_eval: False
@@ -52,11 +52,11 @@ num_threads: 11
 wandb:
   use: True
   project: gtblueprint
-  name_tag: ncnc-photo
+  name_tag: ncnc-history
 
 
 data:
-  name: photo
+  name: history
   undirected: True
   include_negatives: True
   val_pct: 0.15

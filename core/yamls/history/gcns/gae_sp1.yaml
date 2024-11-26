@@ -1,0 +1,17 @@
+method: bayes
+metric:
+  goal: maximize
+  name: Hits@20
+parameters:
+  out_channels:
+    values: [16, 32, 64, 128, 48]
+  hidden_channels:
+    values: [16, 32, 64, 128, 48]
+  # first round
+  # batch_size:
+  #   values: [2048 ]
+  # lr:
+  #   values: [0.001, 0.01]
+
+epochs: 2000
+

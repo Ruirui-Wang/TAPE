@@ -1,0 +1,23 @@
+method: bayes
+metric:
+  goal: maximize
+  name: score
+parameters:
+  wl:
+    max: 20
+    min: 10
+    distribution: int_uniform
+  num_walks:
+    values: [10, 20, 30]
+  p:
+    max: 5
+    min: 0
+    distribution: uniform
+  q:
+    max: 4
+    min: 0.0
+    distribution: uniform
+  ws:
+    values: [3, 5, 7]
+  max_iter:
+    values: [100, 120]

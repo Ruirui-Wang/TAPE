@@ -1,0 +1,28 @@
+# line.yaml
+
+out_dir: results
+metric_best: f1
+wandb:
+  use: True
+  project: gtblueprint
+
+train:
+  mode: custom
+  batch_size: 32   
+  eval_period: 1
+model:
+  type: line
+  line:
+    max_iter: 1000
+
+num_threads: 11
+data:
+  name: cora
+  undirected: True
+  include_negatives: True
+  val_pct: 0.15
+  test_pct: 0.05
+  device: cpu
+  split_labels: False
+  split_index: [0.8, 0.15, 0.05]
+
