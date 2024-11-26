@@ -21,7 +21,7 @@ from typing import Dict, Tuple, List, Union
 import torch
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
-from gensim.models import Word2Vec
+# from gensim.models import Word2Vec
 from tqdm import tqdm 
 import time
 
@@ -321,40 +321,7 @@ def load_taglp_computers(cfg: CN, lcc_bool: bool = True) -> Tuple[Dict[str, Data
     print(f"split_test edges: {splits['test'].edge_index.max().tolist() + 1}")
     return splits, text, data
 
-def load_taglp_photo(cfg: CN, lcc_bool: bool = True) -> Tuple[Dict[str, Data], List[str]]:
-    # add one default argument
 
-    data, text = load_tag_photo()
-
-    print(f"original num of nodes: {data.num_nodes}")
-    print(data)
-    data.edge_index, _ = coalesce(data.edge_index, None, num_nodes=data.num_nodes)
-    data.edge_index, _ = remove_self_loops(data.edge_index)
-    if data.is_directed() is True:
-        data.edge_index = to_undirected(data.edge_index)
-        undirected = True
-    else:
-        undirected = data.is_undirected()
-
-    if lcc_bool:
-        data, lcc, _ = use_lcc(data)
-        text = [text[i] for i in lcc]
-
-    splits = get_edge_split(data,
-                            undirected,
-                            cfg.device,
-                            cfg.split_index[1],
-                            cfg.split_index[2],
-                            cfg.include_negatives,
-                            cfg.split_labels
-                            )
-    print(f"num of nodes after lcc: {data.num_nodes}")
-    print(f"num of edges after lcc: {data.edge_index.shape[1]}")
-    print(f"num of texts in dataset: {len(text)}")
-    print(f"split_train edges: {splits['train'].edge_index.max().tolist() + 1}")
-    print(f"split_valid edges: {splits['valid'].edge_index.max().tolist() + 1}")
-    print(f"split_test edges: {splits['test'].edge_index.max().tolist() + 1}")
-    return splits, text, data
 
 def load_taglp_citationv8(cfg: CN, lcc_bool: bool=True) -> Tuple[Dict[str, Data], List[str]]:
     # add one default argument

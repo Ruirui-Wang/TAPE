@@ -12,9 +12,9 @@ run:
 
 train:
   mode: custom
-  batch_size: 1024 #
+  batch_size: 2048 #
   eval_period: 1
-  epochs: 100
+  epochs: 300
   device: 0
   auto_resume: False
   final_eval: False
@@ -25,11 +25,11 @@ model:
   model: puregcn
   type: HLGNN
   K: 20
-  init: RWR
+  init: KI
   alpha: 0.2
-  dropout: 0.5
+  dropout: 0.6
   norm_func: gcn_norm
-  hidden_channels: 8192
+  hidden_channels: 512
   mlp_num_layers: 3
 
 

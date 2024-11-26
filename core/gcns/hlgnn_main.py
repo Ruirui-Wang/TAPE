@@ -4,7 +4,6 @@ import os, sys
 from torch_sparse import SparseTensor
 from torch_geometric.graphgym import params_count
 
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
 import time
@@ -40,6 +39,7 @@ def hlgnn_dataset(data, splits):
     else:
         data.full_adj_t = data.adj_t
     return data
+
 def parse_args() -> argparse.Namespace:
     r"""Parses the command line arguments."""
     parser = argparse.ArgumentParser(description='GraphGym')
