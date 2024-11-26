@@ -342,10 +342,10 @@ def parse_args() -> argparse.Namespace:
                         help='The number of starting seed.')
     parser.add_argument('--device', dest='device', required=False,
                         help='device id')
-    parser.add_argument('--downsampling', type=float, default=1,
+    parser.add_argument('--downsampling', type=float, default=0.05,
                         help='Downsampling rate.')
     parser.add_argument('--epochs', dest='epoch', type=int, required=False,
-                        default=1000)
+                        default=1)
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='See graphgym/config.py for remaining options.')
     parser.add_argument('--decoder', type=str, required=False)
@@ -372,6 +372,7 @@ if __name__ == '__main__':
     cfg.data.device = args.device
     cfg.model.device = args.device
     cfg.device = args.device
+    cfg.lm.train.epochs = args.epoch
     torch.set_num_threads(cfg.num_threads)
     best_acc = 0
     best_params = {}
