@@ -1,0 +1,8 @@
+Metric,Hits@1,Hits@3,Hits@10,Hits@20,Hits@50,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit20,mrr_hit50,mrr_hit100,AUC,AP,ACC
+ft-MLP-minilm-cora-NCN,61.26 ± nan,63.24 ± nan,81.03 ± nan,91.30 ± nan,96.44 ± nan,99.60 ± nan,66.97 ± nan,61.26 ± nan,63.24 ± nan,81.03 ± nan,91.30 ± nan,96.44 ± nan,99.60 ± nan,97.50 ± nan,97.64 ± nan,0.00 ± nan
+ft-MLP-minilm-cora-NCN,60.47 ± nan,61.26 ± nan,80.63 ± nan,91.30 ± nan,96.44 ± nan,99.60 ± nan,66.37 ± nan,60.47 ± nan,61.26 ± nan,80.63 ± nan,91.30 ± nan,96.44 ± nan,99.60 ± nan,97.46 ± nan,97.61 ± nan,0.00 ± nan
+ft-MLP-minilm-cora-NCN,58.89 ± nan,62.06 ± nan,80.24 ± nan,91.70 ± nan,96.05 ± nan,99.60 ± nan,65.46 ± nan,58.89 ± nan,62.06 ± nan,80.24 ± nan,91.70 ± nan,96.05 ± nan,99.60 ± nan,97.49 ± nan,97.61 ± nan,0.00 ± nan
+ft-MLP-minilm-cora-NCN,59.29 ± nan,61.26 ± nan,81.03 ± nan,91.70 ± nan,96.44 ± nan,99.60 ± nan,65.60 ± nan,59.29 ± nan,61.26 ± nan,81.03 ± nan,91.70 ± nan,96.44 ± nan,99.60 ± nan,97.45 ± nan,97.58 ± nan,0.00 ± nan
+ft-MLP-minilm-cora-NCN,58.89 ± nan,63.24 ± nan,81.42 ± nan,91.30 ± nan,96.05 ± nan,99.60 ± nan,65.60 ± nan,58.89 ± nan,63.24 ± nan,81.42 ± nan,91.30 ± nan,96.05 ± nan,99.60 ± nan,97.49 ± nan,97.61 ± nan,0.00 ± nan
+ft-MLP-minilm-cora-NCN,57.71 ± nan,62.45 ± nan,81.42 ± nan,91.30 ± nan,96.05 ± nan,99.60 ± nan,65.01 ± nan,57.71 ± nan,62.45 ± nan,81.42 ± nan,91.30 ± nan,96.05 ± nan,99.60 ± nan,97.52 ± nan,97.64 ± nan,0.00 ± nan
+Best,61.26,63.24,81.42,91.7,96.44,99.6,66.97,61.26,63.24,81.42,91.7,96.44,99.6,97.52,97.64,0.0

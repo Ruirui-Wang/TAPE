@@ -1,0 +1,7 @@
+Metric,Hits@1,Hits@3,Hits@10,Hits@20,Hits@50,Hits@100,MRR,mrr_hit1,mrr_hit3,mrr_hit10,mrr_hit20,mrr_hit50,mrr_hit100,AUC,AP,ACC
+ft-MLP-minilm-cora-NCN,46.64 ± nan,65.61 ± nan,84.58 ± nan,92.89 ± nan,99.21 ± nan,100.00 ± nan,58.48 ± nan,46.64 ± nan,65.61 ± nan,84.58 ± nan,93.28 ± nan,99.21 ± nan,100.00 ± nan,97.95 ± nan,97.84 ± nan,0.00 ± nan
+ft-MLP-minilm-cora-NCN,47.43 ± nan,67.19 ± nan,84.58 ± nan,93.28 ± nan,98.81 ± nan,100.00 ± nan,59.65 ± nan,47.43 ± nan,67.19 ± nan,84.58 ± nan,93.28 ± nan,98.81 ± nan,100.00 ± nan,97.99 ± nan,97.91 ± nan,0.00 ± nan
+ft-MLP-minilm-cora-NCN,45.45 ± nan,67.98 ± nan,84.98 ± nan,92.49 ± nan,98.81 ± nan,100.00 ± nan,58.21 ± nan,45.45 ± nan,67.98 ± nan,84.98 ± nan,92.49 ± nan,98.81 ± nan,100.00 ± nan,97.94 ± nan,97.85 ± nan,0.00 ± nan
+ft-MLP-minilm-cora-NCN,43.48 ± nan,63.64 ± nan,82.21 ± nan,90.91 ± nan,98.81 ± nan,100.00 ± nan,56.77 ± nan,43.48 ± nan,63.64 ± nan,82.21 ± nan,90.91 ± nan,98.81 ± nan,100.00 ± nan,97.84 ± nan,97.73 ± nan,0.00 ± nan
+ft-MLP-minilm-cora-NCN,56.92 ± nan,64.43 ± nan,88.93 ± nan,95.26 ± nan,98.81 ± nan,100.00 ± nan,65.70 ± nan,56.92 ± nan,64.43 ± nan,88.93 ± nan,95.26 ± nan,98.81 ± nan,100.00 ± nan,98.46 ± nan,98.43 ± nan,0.00 ± nan
+Best,56.92,67.98,88.93,95.26,99.21,100.0,65.7,56.92,67.98,88.93,95.26,99.21,100.0,98.46,98.43,0.0

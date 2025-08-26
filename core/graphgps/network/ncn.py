@@ -208,7 +208,7 @@ class CNLinkPredictor(nn.Module):
                  use_xlin=True, # whether to use linear transformation for input features
                  tailact=True, # whether to use linear transformation for the last layer
                  twolayerlin=False, # whether to use two-layer linear transformation
-                 beta=1.0): # weight for common neighbors
+                 beta=1): # weight for common neighbors
         super().__init__()
         self.register_parameter("beta", nn.Parameter(beta * torch.ones((1)))) # weight for common neighbors
         self.dropadj = DropAdj(edrop) # edge dropout
@@ -259,16 +259,7 @@ class CNLinkPredictor(nn.Module):
         return torch.cat(
             [self.lin(self.xcnlin(xcn) * self.beta + xij) for xcn in xcns], dim=-1
         )
-        # TODO visualize the node features
-        import matplotlib.pyplot as plt 
-        plt.figure(figsize=(12, 8))  # Adjust figsize as needed to fit your page
-        plt.imshow(x.detach().numpy(), cmap='viridis', aspect='auto')
-        plt.colorbar(label='Value')
-        plt.title('Heatmap of a 2708x256 Matrix')
-        plt.xlabel('Column Index')
-        plt.ylabel('Row Index')
-        plt.tight_layout() 
-        plt.savefig('heatmap.png')
+
 
 
     def forward(self, x, adj, tar_ei, filled1: bool = False):

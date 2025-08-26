@@ -138,24 +138,26 @@ def graph_metrics_nx(graph: nx.Graph, name: str, use_lcc: bool) -> Dict[str, flo
     return result
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description='ogb_nx_stats')
+    parser.add_argument('--data_name', dest='data_name', type=str, required=False,
+                        help='data name')
+    args = parser.parse_args()
+    
     gc = [] #"ppa", "collab", "citation2", "vessel"
-    for name in ["citation2"]:
-        data,  split_edge = loaddataset(name, False)
-        start_time = time.time()
-        m = construct_sparse_adj(data.edge_index.numpy())
-        G = from_scipy_sparse_array(m)
-        print(f"Time taken to create graph: {time.time() - start_time} s")
+    data,  split_edge = loaddataset(args.data_name, False)
+    start_time = time.time()
+    m = construct_sparse_adj(data.edge_index.numpy())
+    G = from_scipy_sparse_array(m)
+    print(f"Time taken to create graph: {time.time() - start_time} s")
+    
+    if True:
+        gc.append(graph_metrics_nx(G, args.data_name, False))
+        print(gc)
         
-        if  False:
-            plot_all_cc_dist(G, 'haha')
+        gc = pd.DataFrame(gc)
+        gc.to_csv(f'{args.data_name}_all_graph_metric_False.csv', index=False)
         
-        if True:
-            gc.append(graph_metrics_nx(G, name, False))
-            print(gc)
-            
-            gc = pd.DataFrame(gc)
-            gc.to_csv(f'{name}_all_graph_metric_False.csv', index=False)
-            
     """
     gc = [] 
     results = [] 

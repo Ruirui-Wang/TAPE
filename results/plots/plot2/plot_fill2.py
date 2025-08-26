@@ -44,7 +44,7 @@ group_labels = {
 fig, ax = plt.subplots(facecolor='white')  # Two subplots side by side
 
 for idx, data_name in enumerate(['arxiv_2023']):
-    file_path = f'/hkfs/work/workspace/scratch/cc7738-benchmark_tag/TAPE_chen/results/plots/plot2/{data_name}.csv'
+    file_path = f'/hkfs/work/workspace/scratch/cc7738-2025_whole/TAPE_chen/TAPE/results/plots/plot2/{data_name}.csv'
     data_name = f'-{data_name}'
     data = pd.read_csv(file_path)
     

@@ -5,16 +5,11 @@ from matplotlib import pyplot
 import numpy as np
 import torch
 import os
-from torch_geometric.datasets import Planetoid
-import torch_geometric.transforms as T
-from torch_geometric.utils import to_torch_coo_tensor
 from torch_sparse import SparseTensor
 import matplotlib.pyplot as plt
 from scipy.sparse import coo_matrix
-import matspy as spy  # https://github.com/alugowski/matspy
 import math
 import argparse
-import os.path as osp
 import numpy as np
 from ogb.linkproppred import PygLinkPropPredDataset
 import random 
