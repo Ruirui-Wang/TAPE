@@ -182,6 +182,7 @@ class LMTrainer():
         bert_model = AutoModel.from_pretrained(self.model_name, attn_implementation="eager")
         '''if 'mpnet' not in cfg.lm.model.name:
             bert_model.gradient_checkpointing_enable()'''
+
         hidden_size = bert_model.config.hidden_size
         current_size = self.data.x.size(1)
 
@@ -200,9 +201,10 @@ class LMTrainer():
                 break
             if 'encoder.layer.11' in name and 'bert' in cfg.lm.model.name:
                 break
-            if 'encoder.layer.23' in name and 'e5-large' in cfg.lm.model.name:
+            if 'encoder.layer.23' in name and 'e5' in cfg.lm.model.name:
                 break
             param.requires_grad = False
+
 
         if self.decoder.model.type == 'MLP':
             self.model = BertClassifier(bert_model, cfg, feat_shrink=self.feat_shrink).to(self.device)
@@ -214,6 +216,7 @@ class LMTrainer():
             cfg_model.in_channels = hidden_size
             self.model = GCNClassifier(bert_model, cfg, self.data, self.data.edge_index,
                                        create_GAE_model(cfg_model, cfg_score, args.model)).to(self.device)
+
         self.evaluator_hit = Evaluator(name='ogbl-collab')
         self.evaluator_mrr = Evaluator(name='ogbl-citation2')
         self.tensorboard_writer = writer
@@ -327,10 +330,10 @@ class LMTrainer():
         result_mrr.update({'ACC': 0.00})
         return result_mrr
 
-    def save_result(self, results_dict: Dict[str, float]):  # sourcery skip: avoid-builtin-shadow
+    def save_result(self, file_name, results_dict: Dict[str, float]):  # sourcery skip: avoid-builtin-shadow
 
         root = os.path.join(self.FILE_PATH, cfg.out_dir)
-        acc_file = os.path.join(root, f'{self.dataset_name}_lm_mrr.csv')
+        acc_file = os.path.join(root, file_name)
         self.print_logger.info(f"save to {acc_file}")
         os.makedirs(root, exist_ok=True)
         mvari_str2csv(self.name_tag, results_dict, acc_file)
@@ -356,6 +359,7 @@ def parse_args() -> argparse.Namespace:
                         help='See graphgym/config.py for remaining options.')
     parser.add_argument('--decoder', type=str, required=False)
     parser.add_argument('--model', type=str, required=False)
+    parser.add_argument('--gnn_layers', type=int, required=False)
     return parser.parse_args()
 
 
@@ -383,6 +387,9 @@ if __name__ == '__main__':
     best_params = {}
     loggers = create_logger(args.repeat)
     start_ft = time.time()
+    cfg.decoder.model.mplayers = args.gnn_layers
+    file_name = f'{cfg.model.type}-{cfg.data.name}_lm_mrr_{cfg.decoder.model.mplayers}.csv'
+    print(f'result will be saved to {file_name}')
     for run_id in range(args.repeat):
         seed = run_id + args.start_seed
         set_printing(cfg)
@@ -425,8 +432,9 @@ if __name__ == '__main__':
         print(key)
         _, _, _, valid_test, _, _ = loggers[key].calc_all_stats()
         result_dict[key] = valid_test
-
-    trainer.save_result(result_dict)
+    
+    file_name = f'{cfg.model.type}-{cfg.data.name}_lm_mrr_{cfg.decoder.model.mplayers}.csv'
+    trainer.save_result(file_name, result_dict)
 
     print_logger.info(f"Results for: {cfg.model.type}")
     print_logger.info(f"Model Params: {trainer.trainable_params}")

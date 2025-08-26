@@ -3,20 +3,15 @@ device: 0
 lm:
   model:
     feat_shrink: 
-    name: sentence-transformers/all-MiniLM-L6-v2
+    name: sentence-transformers/all-MiniLM-L6-v2 # microsoft/Multilingual-MiniLM-L12-H384
   train:
     att_dropout: 0.1
-<<<<<<< HEAD
-    batch_size: 512
-    cla_dropout: 0.4
-    dropout: 0.3
-    epochs: 20
-=======
+
     batch_size: 256
     cla_dropout: 0.4
     dropout: 0.3
     epochs: 250
->>>>>>> caa8aff586860fd3c255ceed9bbdca45a0e880f5
+
     eval_patience: 100000000000
     grad_acc_steps: 4
     lr: 0.0001
