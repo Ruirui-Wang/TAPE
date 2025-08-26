@@ -128,7 +128,7 @@ def load_data(file_path):
     return data
 
 # Load data
-file_path = '/hkfs/work/workspace/scratch/cc7738-iclr25/cc7738-benchmark_tag/TAPE_chen/results/plots/plot1/complexity_cora.csv'
+file_path = '/hkfs/work/workspace/scratch/cc7738-2025_whole/TAPE_chen/TAPE/results/plots/plot1/complexity_cora.csv'
 data = load_data(file_path)
 
 # Sort by AUC and reset index
